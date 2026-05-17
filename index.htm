@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="assets/img/book-open.ico" type="image/x-icon">
+    <title>MyLiberty</title>
+    <style>
+        /* ZÁKLADNÍ DESIGN */
+        body { background-color: #121212; color: #fff; font-family: 'Nunito Sans', sans-serif; margin: 0; }
+        @font-face {
+            font-family: 'Nunito Sans';
+            src: url('assets/fonts/NunitoSans-VariableFont_YTLC\,opsz\,wdth\,wght.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'MojeHemiHead';
+            src: url('assets/fonts/HemiHead-BoldItalic.otf');
+        }
+
+        h1, h2 {
+            font-family: 'MojeHemiHead', sans-serif;
+        }
+        
+        /* HORNÍ ŠEDÁ LIŠTA */
+        .header {
+            background-color: #1a1a1a;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid #252525;
+            justify-content: space-between;
+        }
+        .header .logo { font-weight: bold; font-size: 20px; letter-spacing: 1px; color: #eee; }
+        .header nav { display: flex; gap: 30px; }
+        .header nav a { color: #888; text-decoration: none; font-size: 16px; text-transform: uppercase; transition: 0.3s; }
+        .header nav a:hover { color: #fff; }
+        .header .search-box { background: #252525; border: none; padding: 8px 15px; border-radius: 20px; color: #fff; width: 200px; font-size: 13px; }
+
+        /* FILTRY A OBSAH */
+        .container { padding: 20px 40px 20px 40px; max-width: 1250px; margin: auto; }
+
+        /* MŘÍŽKA (GRID) */
+        #ajaxContent {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 30px;
+        }
+
+        /* KARTA SERIÁLU */
+        .filterDiv { display: none; } 
+        .show { display: block; }
+        .anime-card { position: relative; transition: 0.4s ease; }
+        .anime-card:hover { transform: scale(1.05); z-index: 10; }
+        .anime-card img { width: 100%; border-radius: 8px; display: block; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        
+        .ep-badge {
+            background: #ffcc00; color: #000; font-weight: bold;
+            padding: 3px 10px; border-radius: 15px; font-size: 10px;
+            position: absolute; bottom: 60px; left: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .title { font-size: 14px; margin: 12px 0 2px 0; color: #eee; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .year { color: #666; font-size: 12px; font-weight: 600; }
+
+        .anime-card a { text-decoration: none; color: inherit; display: block; /* Aby odkaz vyplnil celou kartu */ }
+
+        .main-links-wrapper {
+            display: flex;
+            justify-content: center; /* Vycentrování na střed */
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        /* VELKÉ ROZCESTNÍKY */
+        .main-link-box {
+            background: #1a1a1a;
+            width: 300px; /* Šířka obdélníku */
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #333;
+            transition: 0.3s;
+            text-decoration: none;
+            display: block;
+        }
+
+        .main-link-box:hover {
+            border-color: #555;
+            background: #222;
+            transform: translateY(-5px);
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- BANNER -->
+        <div class="hero-banner" style="background: linear-gradient(to top, rgba(18,18,18,1) 0%, rgba(18,18,18,0.4) 30%, rgba(18,18,18,0) 100%), url('assets/img/sliders/avatar-the-way-of-water.png'); background-size: 100% 100%; background-position: center; background-repeat: no-repeat; background-color: #121212; height: 400px; border-radius: 15px; display: flex; align-items: flex-end; padding: 30px; text-shadow: 2px 2px 10px rgba(0,0,0,1), 0 0 20px rgba(0,0,0,0.5);">
+        <h1>Vítej v MyLiberty</h1>
+        </div>
+
+        <!-- VELKÉ ROZCESTNÍKY -->
+        <div class="main-links-wrapper">
+            <a href="filmy.htm" class="main-link-box">
+                <h2 style="color: #ffcc00; margin: 0;">FILMY</h2>
+                <span style="color: #666; font-size: 14px;">Celkem: 346</span>
+            </a>
+            <a href="serialy.htm" class="main-link-box">
+                <h2 style="color: #bb86fc; margin: 0;">SERIÁLY</h2>
+                <span style="color: #666; font-size: 14px;">Celkem: 358</span>
+            </a>
+        </div>
+
+        <!-- POSLEDNÍ PŘIDANÉ (Tady si ručně necháš jen pár top kousků) -->
+        <h3 style="margin-top: 40px; color: #444;">ČERSTVĚ PŘIDÁNO:</h3>
+        <div id="ajaxContent">
+            <!-- Tady zkopíruješ ty 4-5 filterDivů, které jsi zrovna dokončil -->
+
+            <!--ZENSHU-->
+            <div class="filterDiv g05 g10 g25 y2025 show" data-name="ZENSHU" data-year="2025" data-added="2026-05-10">
+                <div class="anime-card">
+                    <a href="zenshu.htm">
+                        <img src="assets/img/52d49510-cb8a-11ef-8978-ed29e7ae89dd.jpg">
+                        <div class="ep-badge">12 EP</div>
+                        <div class="title">ZENSHU</div>
+                        <div class="year">2025 -</div>
+                    </a>
+                </div>
+            </div>
+
+            <!--Welcome to Demon School! Iruma-kun-->
+            <div class="filterDiv g06 g10 g25 y2019 show" data-name="Welcome to Demon School! Iruma-kun" data-year="2019" data-added="2026-05-10">
+                <div class="anime-card">
+                    <a href="welcome-to-demon-school-iruma-kun.htm">
+                        <img src="assets/img/d7643b0a-4702-11ed-9455-77f75e4b2dc1.jpg">
+                        <div class="ep-badge">65 EP</div>
+                        <div class="title">Welcome to Demon School! Iruma-kun</div>
+                        <div class="year">2019 -</div>
+                    </a>
+                </div>
+            </div>
+
+            <!--Villainess Level 99: I May Be the Hidden Boss but I'm Not the Demon Lord-->
+            <div class="filterDiv g06 g25 y2024 show" data-name="Villainess Level 99: I May Be the Hidden Boss but I'm Not the Demon Lord" data-year="2024" data-added="2026-05-10">
+                <div class="anime-card">
+                    <a href="villainess-level-99.htm">
+                        <img src="assets/img/025accc8-af0f-11ee-8579-8f3cc749fd57.jpg">
+                        <div class="ep-badge">12 EP</div>
+                        <div class="title">Villainess Level 99: I May Be the Hidden Boss but I'm Not the Demon Lord</div>
+                        <div class="year">2024 -</div>
+                    </a>
+                </div>
+            </div>
+
+            <!--Železná srdce-->
+            <div class="filterDiv g01 g05 g18 y2014 show" data-name="Železná srdce" data-year="2014" data-added="2026-05-10">
+                <div class="anime-card">
+                    <a href="Fury.htm">
+                        <img src="assets/img/Fury.jpg">
+                        <div class="title">Železná srdce</div>
+                        <div class="year">2014</div>
+                    </a>
+                </div>
+            </div>
+
+            <!--Zloba: Královna všeho zlého-->
+            <div class="filterDiv g01 g03 g06 g21 g14 y2019 show" data-name="Zloba 02" data-year="2019" data-added="2026-05-10">
+                <div class="anime-card">
+                    <a href="Zloba-2.htm">
+                        <img src="assets/img/Zloba-2019.jpg">
+                        <div class="title">Zloba: Královna všeho zlého</div>
+                        <div class="year">2019</div>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</body>
+</html>

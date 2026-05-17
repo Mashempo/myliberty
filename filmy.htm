@@ -1,0 +1,4224 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="assets/img/book-open.ico" type="image/x-icon">
+    <title>MyLiberty | Filmy</title>
+    <style>
+        /* ZÁKLADNÍ DESIGN */
+        body { background-color: #121212; color: #fff; font-family: 'Nunito Sans', sans-serif; margin: 0; }
+        @font-face {
+            font-family: 'Nunito Sans';
+            src: url('assets/fonts/NunitoSans-VariableFont_YTLC\,opsz\,wdth\,wght.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @font-face {
+            font-family: 'MojeHemiHead';
+            src: url('assets/fonts/HemiHead-BoldItalic.otf');
+        }
+
+        h1, h2 {
+            font-family: 'MojeHemiHead', sans-serif;
+        }
+        
+        /* HORNÍ ŠEDÁ LIŠTA */
+        .header {
+            background-color: #1a1a1a;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 1px solid #252525;
+            justify-content: space-between;
+        }
+        .header .logo { font-weight: bold; font-size: 20px; letter-spacing: 1px; color: #eee; }
+        .header nav { display: flex; gap: 30px; }
+        .header nav a { color: #888; text-decoration: none; font-size: 16px; text-transform: uppercase; transition: 0.3s; }
+        .header nav a:hover { color: #fff; }
+        .header .search-box { background: #252525; border: none; padding: 8px 15px; border-radius: 20px; color: #fff; width: 200px; font-size: 13px; }
+
+        /* FILTRY A OBSAH */
+        .container { padding: 20px 40px 20px 40px; max-width: 1250px; margin: auto; }
+
+        /* HORIZONTÁLNÍ FILTRY */
+        .filter-group {
+            display: flex;
+            overflow-x: auto; /* Povolí posun do stran */
+            white-space: nowrap; /* Tlačítka zůstanou v jedné řadě */
+            gap: 10px;
+            padding: 10px 0;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #222;
+            
+            /* Skrytí scrollbaru pro čistý vzhled, ale funkčnost zůstane */
+            scrollbar-width: thin;
+            scrollbar-color: #333 transparent;
+
+            cursor: grab; /* Změní kurzor na "ručičku", abys věděl, že s tím můžeš hýbat */
+            user-select: none; /* Zakáže označování textu */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+        .filter-group:active { cursor: grabbing; /* Když na to klikneš a táhneš */ }
+
+        /* Scrollbar pro Chrome/Safari (velmi tenký a tmavý) */
+        .filter-group::-webkit-scrollbar { height: 4px; }
+        .filter-group::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .filter-group::-webkit-scrollbar-track { background: transparent; /* Pozadí pod posuvníkem */ }
+
+        /* ZMENŠENÍ TLAČÍTEK, ABY TO BYLO KOMPAKTNÍ */
+        .btn {
+            flex: 0 0 auto; /* Zabrání tlačítkům, aby se smrštila */
+            background: transparent;
+            border: 1px solid #252525;
+            color: #666;
+            padding: 6px 12px;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 4px;
+        }
+
+        .btn:hover {
+            color: #aaa;
+            border-color: #444;
+        }
+
+        .btn.active {
+            color: #fff;
+            border-color: #ffcc00; /* Tvoje žlutá barva */
+            background-color: rgba(255, 204, 0, 0.05); /* Jemný nádech pod aktivním tlačítkem */
+        }
+
+        /* ODDĚLOVACÍ ČÁRA MEZI SKUPINAMI */
+        .filter-divider {
+            border-bottom: 1px solid #222;
+            margin: 5px 0;
+        }
+
+        /* Zajištění, že tlačítka se nebudou mačkat */
+        .filter-group .btn { flex: 0 0 auto; }
+
+        /* MŘÍŽKA (GRID) */
+        #ajaxContent {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 30px;
+        }
+
+        /* KARTA SERIÁLU */
+        .filterDiv { display: none; } 
+        .show { display: block; }
+        .anime-card { position: relative; transition: 0.4s ease; }
+        .anime-card:hover { transform: scale(1.05); z-index: 10; }
+        .anime-card img { width: 100%; border-radius: 8px; display: block; box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        
+        .ep-badge {
+            background: #ffcc00; color: #000; font-weight: bold;
+            padding: 3px 10px; border-radius: 15px; font-size: 10px;
+            position: absolute; bottom: 60px; left: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .title { font-size: 14px; margin: 12px 0 2px 0; color: #eee; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .year { color: #666; font-size: 12px; font-weight: 600; }
+
+        .anime-card a { text-decoration: none; color: inherit; display: block; /* Aby odkaz vyplnil celou kartu */ }
+
+        /* TLAČÍTKA PRO VESMÍRY */
+        .btn-universe {
+            border: 1px solid #442222 !important; 
+            color: #885555 !important;
+            background: transparent !important;
+        }
+
+        .btn-universe:hover {
+            color: #cc8888 !important;
+            border-color: #663333 !important;
+        }
+
+        .btn-universe.active {
+            border-color: #ff4444 !important; /* Jasně červená pro Marvel/DC */
+            color: #fff !important;
+            background-color: rgba(255, 68, 68, 0.1) !important;
+        }
+
+        /* SROVNÁNÍ NÁPISU VESMÍRY */
+        .universe-label {
+            font-size: 11px;
+            color: #444;
+            text-transform: uppercase;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 15px;
+            letter-spacing: 1px;
+            user-select: none;
+        }
+
+    </style>
+</head>
+
+<body>
+    <!-- STRUKTURA TĚLA -->
+    <div class="header">
+        <div class="logo"><img src="assets/img/logo-cz.png" alt="MyLiberty"></div>
+        <input type="text" id="searchInput" class="search-box" onkeyup="searchShows()" placeholder="Hledat film...">
+        <nav style="font-family: Hemi Head;">
+            <a href="index.htm">Domů</a>
+            <a href="filmy.htm" style="color:#fff">Filmy</a>
+            <a href="serialy.htm">Seriály</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <h2 style="font-size: 24px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;">
+            Filmy <span class="number" style="color: #444; margin-left: 10px;">0</span>
+        </h2>
+
+    <!-- Zbytek kódu s filtry a ajaxContent zůstává stejný... -->
+    </div>
+
+<div class="container">
+
+    <!-- KONTEJNERY PRO FILTRY -->
+    <div class="filter-group" id="genreContainer">
+        <button class="btn active" onclick="setGenre('all')">SHOW ALL</button>
+        <button class="btn" onclick="setGenre('g01')">AKČNÍ</button>
+        <button class="btn" onclick="setGenre('g02')">ANIMEMOVANÉ</button>
+        <button class="btn" onclick="setGenre('g25')">ANIME</button>
+        <button class="btn" onclick="setGenre('g03')">DOBRODRUŽNÉ</button>
+        <button class="btn" onclick="setGenre('g04')">DOKUMENTÁRNÍ</button>
+        <button class="btn" onclick="setGenre('g05')">DRAMA</button>
+        <button class="btn" onclick="setGenre('g22')">ECCHI</button>
+        <button class="btn" onclick="setGenre('g23')">EROTICKÉ</button>
+        <button class="btn" onclick="setGenre('g06')">FANTASY</button>
+        <button class="btn" onclick="setGenre('g07')">HISTORICKÉ</button>
+        <button class="btn" onclick="setGenre('g08')">HORROR</button>
+        <button class="btn" onclick="setGenre('g09')">HUDEBNÍ</button>
+        <button class="btn" onclick="setGenre('g24')">KATASTROFICKÉ</button>
+        <button class="btn" onclick="setGenre('g10')">KOMEDIE</button>
+        <button class="btn" onclick="setGenre('g11')">KRIMINÁLNÍ</button>
+        <button class="btn" onclick="setGenre('g12')">MUZIKÁL</button>
+        <button class="btn" onclick="setGenre('g13')">MYSTERIÓZNÍ</button>
+        <button class="btn" onclick="setGenre('g26')">POHÁDKY</button>
+        <button class="btn" onclick="setGenre('g14')">RODINNÉ</button>
+        <button class="btn" onclick="setGenre('g21')">ROMANTICKÉ</button>
+        <button class="btn" onclick="setGenre('g15')">SCI-FI</button>
+        <button class="btn" onclick="setGenre('g16')">SPORTOVNÍ</button>
+        <button class="btn" onclick="setGenre('g17')">TRILLER</button>
+        <button class="btn" onclick="setGenre('g18')">VOJENSKÉ</button>
+        <button class="btn" onclick="setGenre('g19')">WESTERN</button>
+        <button class="btn" onclick="setGenre('g20')">ŽIVOTOPISNÉ</button>
+    </div>
+    
+    <div class="filter-group" id="yearContainer">
+        <button class="btn active" onclick="setYear('all')">VŠE</button>
+        <button class="btn" onclick="setYear('y2026')">2026</button>
+        <button class="btn" onclick="setYear('y2025')">2025</button>
+        <button class="btn" onclick="setYear('y2024')">2024</button>
+        <button class="btn" onclick="setYear('y2023')">2023</button>
+        <button class="btn" onclick="setYear('y2022')">2022</button>
+        <button class="btn" onclick="setYear('y2021')">2021</button>
+        <button class="btn" onclick="setYear('y2020')">2020</button>
+        <button class="btn" onclick="setYear('y2019')">2019</button>
+        <button class="btn" onclick="setYear('y2018')">2018</button>
+        <button class="btn" onclick="setYear('y2017')">2017</button>
+        <button class="btn" onclick="setYear('y2016')">2016</button>
+        <button class="btn" onclick="setYear('y2015')">2015</button>
+        <button class="btn" onclick="setYear('y2014')">2014</button>
+        <button class="btn" onclick="setYear('y2013')">2013</button>
+        <button class="btn" onclick="setYear('y2012')">2012</button>
+        <button class="btn" onclick="setYear('y2011')">2011</button>
+        <button class="btn" onclick="setYear('y2010')">2010</button>
+        <button class="btn" onclick="setYear('y2009')">2009</button>
+        <button class="btn" onclick="setYear('y2008')">2008</button>
+        <button class="btn" onclick="setYear('y2007')">2007</button>
+        <button class="btn" onclick="setYear('y2006')">2006</button>
+        <button class="btn" onclick="setYear('y2005')">2005</button>
+        <button class="btn" onclick="setYear('y2004')">2004</button>
+        <button class="btn" onclick="setYear('y2003')">2003</button>
+        <button class="btn" onclick="setYear('y2002')">2002</button>
+        <button class="btn" onclick="setYear('y2001')">2001</button>
+        <button class="btn" onclick="setYear('y2000')">2000</button>
+        <button class="btn" onclick="setYear('y1999')">1999</button>
+        <button class="btn" onclick="setYear('y1998')">1998</button>
+        <button class="btn" onclick="setYear('y1996')">1996</button>
+        <button class="btn" onclick="setYear('y1995')">1995</button>
+        <button class="btn" onclick="setYear('y1994')">1994</button>
+        <button class="btn" onclick="setYear('y1993')">1993</button>
+        <button class="btn" onclick="setYear('y1992')">1992</button>
+        <button class="btn" onclick="setYear('y1991')">1991</button>
+        <button class="btn" onclick="setYear('y1988')">1988</button>
+        <button class="btn" onclick="setYear('y1984')">1984</button>
+        <button class="btn" onclick="setYear('y1983')">1983</button>
+        <button class="btn" onclick="setYear('y1980')">1980</button>
+        <button class="btn" onclick="setYear('y1977')">1977</button>
+        <button class="btn" onclick="setYear('y1973')">1973</button>
+    </div>
+
+    <div class="filter-group" id="universeContainer">
+        <span class="universe-label">VESMÍRY:</span>
+        <button class="btn btn-universe" onclick="setGenre('g50'); sortShows('year');">MARVEL</button>
+        <button class="btn btn-universe" onclick="setGenre('g51'); sortShows('year');">DC UNIVERSE</button>
+        <button class="btn btn-universe" onclick="setGenre('g52'); sortShows('year');">WIZARDING WORLD</button>
+        <button class="btn btn-universe" onclick="setGenre('g53'); sortShows('year');">PANDORA</button>
+        <button class="btn btn-universe" onclick="setGenre('g54'); sortShows('year');">MIDDLE-EARTH</button>
+        <button class="btn btn-universe" onclick="setGenre('g55'); sortShows('year');">STAR-WARS</button>
+    </div>
+
+    <div class="filter-group">
+        <button class="btn" onclick="sortShows('name')">A-Z</button>
+        <button class="btn" onclick="sortShows('added')">NEJNOVĚJŠÍ</button>
+    </div>
+
+    <!-- MŘÍŽKA S OBSAHEM -->
+    <div id="ajaxContent">
+
+        <!--Železná srdce-->
+        <div class="filterDiv g01 g05 g18 y2014 show" data-name="Železná srdce" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fury.htm">
+                    <img src="assets/img/Fury.jpg">
+                    <div class="title">Železná srdce</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Zloba: Královna všeho zlého-->
+        <div class="filterDiv g01 g03 g06 g21 g14 y2019 show" data-name="Zloba 02" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Zloba-2.htm">
+                    <img src="assets/img/Zloba-2019.jpg">
+                    <div class="title">Zloba: Královna všeho zlého</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Zloba - Královna černé magie-->
+        <div class="filterDiv g01 g03 g06 g21 g14 y2014 show" data-name="Zloba 01" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Zloba-1.htm">
+                    <img src="assets/img/Zloba-2014.jpg">
+                    <div class="title">Zloba - Královna černé magie</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men: Dark Phoenix-->
+        <div class="filterDiv g01 g03 g15 y2019 show" data-name="X-Men 10" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-10.htm">
+                    <img src="assets/img/X-men-10.jpg">
+                    <div class="title">X-Men: Dark Phoenix</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Logan: Wolverine-->
+        <div class="filterDiv g01 g05 g17 g15 y2017 show" data-name="X-Men 09" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-9.htm">
+                    <img src="assets/img/X-men-9.jpg">
+                    <div class="title">Logan: Wolverine</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men: Apokalypsa-->
+        <div class="filterDiv g01 g03 g15 y2016 show" data-name="X-Men 08" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-8.htm">
+                    <img src="assets/img/X-men-8.jpg">
+                    <div class="title">X-Men: Apokalypsa</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men: Budoucí minulost-->
+        <div class="filterDiv g01 g03 g17 g15 y2014 show" data-name="X-Men 07" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-7.htm">
+                    <img src="assets/img/X-men-7.jpg">
+                    <div class="title">X-Men: Budoucí minulost</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Wolverine-->
+        <div class="filterDiv g01 g03 g06 g17 y2013 show" data-name="X-Men 06" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-6.htm">
+                    <img src="assets/img/X-men-6.jpg">
+                    <div class="title">Wolverine</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men: První třída-->
+        <div class="filterDiv g01 g03 g17 g15 y2011 show" data-name="X-Men 05" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-5.htm">
+                    <img src="assets/img/X-men-5.jpg">
+                    <div class="title">X-Men: První třída</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men Origins: Wolverine-->
+        <div class="filterDiv g01 g03 g17 g15 y2009 show" data-name="X-Men 04" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-4.htm">
+                    <img src="assets/img/X-men-4.jpg">
+                    <div class="title">X-Men Origins: Wolverine</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men: Poslední vzdor-->
+        <div class="filterDiv g01 g03 g17 g15 y2006 show" data-name="X-Men 03" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-3.htm">
+                    <img src="assets/img/X-men-3.jpg">
+                    <div class="title">X-Men: Poslední vzdor</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men 2-->
+        <div class="filterDiv g01g 03 g17 g15 y2003 show" data-name="X-Men 02" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-2.htm">
+                    <img src="assets/img/X-men-2.jpg">
+                    <div class="title">X-Men 2</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--X-Men-->
+        <div class="filterDiv g01 g03 g17 g15 y2000 show" data-name="X-Men 01" data-year="2000" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="X-Men-1.htm">
+                    <img src="assets/img/X-men-1.jpg">
+                    <div class="title">X-Men</div>
+                    <div class="year">2000</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Wonder Woman-->
+        <div class="filterDiv g01 g03 g06 g15 g18 g51 y2017 show" data-name="Wonder Woman" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Wonder-Woman.htm">
+                    <img src="assets/img/Wonder-woman.jpg">
+                    <div class="title">Wonder Woman</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Warrior-->
+        <div class="filterDiv g05 g16 y2011 show" data-name="Warrior" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Warrior.htm">
+                    <img src="assets/img/Warrior.jpg">
+                    <div class="title">Warrior</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Warcraft: První střet-->
+        <div class="filterDiv g01 g03 g06 y2016 show" data-name="Warcraft: První střet" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Warcraft.htm">
+                    <img src="assets/img/Warcraft.jpg">
+                    <div class="title">Warcraft: První střet</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--WALL-E-->
+        <div class="filterDiv g02 g03 g14 g15 y2008 show" data-name="WALL-E" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="WALL-E.htm">
+                    <img src="assets/img/Wall-e.jpg">
+                    <div class="title">WALL-E</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Všechny cesty vedou do hrobu-->
+        <div class="filterDiv g19 g21 g10 y2014 show" data-name="Všechny cesty vedou do hrobu" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Vsechny-cesty-vedou-do-hrobu.htm">
+                    <img src="assets/img/Vsechny-cesty-vedou-....jpg">
+                    <div class="title">Všechny cesty vedou do hrobu</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Venom: Poslední tanec-->
+        <div class="filterDiv g01 g03 g15 y2024 show" data-name="Venom 03" data-year="2024" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Venom-3.htm">
+                    <img src="assets/img/Venom-The-Last-Dance.jpg">
+                    <div class="title">Venom: Poslední tanec</div>
+                    <div class="year">2024</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Venom 2: Carnage přichází-->
+        <div class="filterDiv g01 g15 g17 g50 y2021 show" data-name="Venom 02" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Venom-2.htm">
+                    <img src="assets/img/Venom-2.jpg">
+                    <div class="title">Venom 2: Carnage přichází</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Venom-->
+        <div class="filterDiv g01 g17 g15 g50 y2018 show" data-name="Venom 01" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Venom.htm">
+                    <img src="assets/img/Venom-1.jpg">
+                    <div class="title">Venom</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Velká čínská zeď-->
+        <div class="filterDiv g01 g06 g17 g03 y2016 show" data-name="Velká čínská zeď" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Velka-cinska-zed.htm">
+                    <img src="assets/img/Velka-cinska-zed.jpg">
+                    <div class="title">Velká čínská zeď</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Van Helsing-->
+        <div class="filterDiv g01 g08 g17 g06 g03 g13 y2004 show" data-name="Van Helsing" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Van-Helsing.htm">
+                    <img src="assets/img/Van-Helsing.jpg">
+                    <div class="title">Van Helsing</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Valerian a město tisíce planet-->
+        <div class="filterDiv g01 g03 g06 g15 y2017 show" data-name="Valerian a město tisíce planet" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Valerian-a-mesto-tisice-planet.htm">
+                    <img src="assets/img/Valerian-a-mesto-tisici-planet.jpg">
+                    <div class="title">Valerian a město tisíce planet</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Útěk na Horu čarodějnic-->
+        <div class="filterDiv g03 g06 g17 g15 y2009 show" data-name="Útěk na Horu čarodějnic" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Utek-na-Horu-carodejnic.htm">
+                    <img src="assets/img/Utek-na-horu-carodejnic.jpg">
+                    <div class="title">Útěk na Horu čarodějnic</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Underworld: Krvavé války-->
+        <div class="filterDiv g01 g08 g03 g06 y2016 show" data-name="Underworld 05" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Underworld-5.htm">
+                    <img src="assets/img/Underworld-2016.jpg">
+                    <div class="title">Underworld: Krvavé války</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Underworld: Probuzení-->
+        <div class="filterDiv g01 g06 g08 y2012 show" data-name="Underworld 04" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Underworld-4.htm">
+                    <img src="assets/img/Underworld-2012.jpg">
+                    <div class="title">Underworld: Probuzení</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Underworld: Vzpoura Lycanů-->
+        <div class="filterDiv g01 g03 g05 g17 y2009 show" data-name="Underworld 03" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Underworld-3.htm">
+                    <img src="assets/img/Underworld-2009.jpg">
+                    <div class="title">Underworld: Vzpoura Lycanů</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Underworld: Evolution-->
+        <div class="filterDiv g01 g06 g17 y2006 show" data-name="Underworld 02" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Underworld-2.htm">
+                    <img src="assets/img/Underworld-2006.jpg">
+                    <div class="title">Underworld: Evolution</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Underworld-->
+        <div class="filterDiv g01 g06 g17 y2003 show" data-name="Underworld 01" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Underworld-1.htm">
+                    <img src="assets/img/Underworld-2003.jpg">
+                    <div class="title">Underworld</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Twilight sága: Rozbřesk - 2. část-->
+        <div class="filterDiv g03 g05 g06 g21 y2012 show" data-name="Twilight 05" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Twilight-5.htm">
+                    <img src="assets/img/Twilight-saga-5.jpg">
+                    <div class="title">Twilight sága: Rozbřesk - 2. část</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Twilight sága: Rozbřesk - 1. část-->
+        <div class="filterDiv g03 g05 g06 g21 y2011 show" data-name="Twilight 04" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Twilight-4.htm">
+                    <img src="assets/img/Twilight-saga-4.jpg">
+                    <div class="title">Twilight sága: Rozbřesk - 1. část</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Twilight sága: Zatmění-->
+        <div class="filterDiv g03 g05 g06 g21 y2010 show" data-name="Twilight 03" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Twilight-3.htm">
+                    <img src="assets/img/Twilight-saga-3.jpg">
+                    <div class="title">Twilight sága: Zatmění</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Twilight sága: Nový měsíc-->
+        <div class="filterDiv g y2009 show" data-name="Twilight 02" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Twilight-2.htm">
+                    <img src="assets/img/Twilight-saga-2.jpg">
+                    <div class="title">Twilight sága: Nový měsíc</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Twilight - Stmívání-->
+        <div class="filterDiv g03 g05 g06 g21 y2008 show" data-name="Twilight 01" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Twilight.htm">
+                    <img src="assets/img/Twilight.jpg">
+                    <div class="title">Twilight - Stmívání</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Tři mušketýři-->
+        <div class="filterDiv g01 g03 g21 y2011 show" data-name="Tři mušketýři" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Tri-musketyri.htm">
+                    <img src="assets/img/Tri-musketyri.jpg">
+                    <div class="title">Tři mušketýři</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--TRON: Legacy 3D-->
+        <div class="filterDiv g01 g03 g17 g15 y2010 show" data-name="TRON: Legacy 3D" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Tron.htm">
+                    <img src="assets/img/Tron.jpg">
+                    <div class="title">TRON: Legacy 3D</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Troja-->
+        <div class="filterDiv g05 g07 g21 y2004 show" data-name="Troja" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Troja.htm">
+                    <img src="assets/img/Troja.jpg">
+                    <div class="title">Troja</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Trestná lavice-->
+        <div class="filterDiv g01 g05 g16 y2005 show" data-name="Trestná lavice" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Trestna-lavice.htm">
+                    <img src="assets/img/Trestna-lavice.jpg">
+                    <div class="title">Trestná lavice</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Transformers: Poslední rytíř-->
+        <div class="filterDiv g01 g15 g03 y2017 show" data-name="Transformers 05" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Transformers-5.htm">
+                    <img src="assets/img/Transformers-5.jpg">
+                    <div class="title">Transformers: Poslední rytíř</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Transformers: Zánik-->
+        <div class="filterDiv g01 g03 g15 y2014 show" data-name="Transformers 04" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Transformers-4.htm">
+                    <img src="assets/img/Transformers-4.jpg">
+                    <div class="title">Transformers: Zánik</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Transformers 3: Odvrácená strana Měsíce-->
+        <div class="filterDiv g01 g15 g03 y2011 show" data-name="Transformers 03" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Transformers-3.htm">
+                    <img src="assets/img/Transformers-3.jpg">
+                    <div class="title">Transformers 3: Odvrácená strana Měsíce</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Transformers: Pomsta poražených-->
+        <div class="filterDiv g01 g03 g15 g17 y2009 show" data-name="Transformers 02" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Transformers-2.htm">
+                    <img src="assets/img/Transformers-2.jpg">
+                    <div class="title">Transformers: Pomsta poražených</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Transformers-->
+        <div class="filterDiv g01 g15 g17 g10 g03 y2007 show" data-name="Transformers 01" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Transformers.htm">
+                    <img src="assets/img/Transformers-1.jpg">
+                    <div class="title">Transformers</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Tomorrowland-->
+        <div class="filterDiv g01 g13 g03 g15 g14 y2015 show" data-name="Tomorrowland" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Tomorrowland.htm">
+                    <img src="assets/img/Tomorrowland.jpg">
+                    <div class="title">Tomorrowland</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Titanic-->
+        <div class="filterDiv g05 g21 g07 g24 y2002 show" data-name="Titanic" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Titanic.htm">
+                    <img src="assets/img/Titanic.jpg">
+                    <div class="title">Titanic</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Thor: Ragnarok-->
+        <div class="filterDiv g01 g03 g06 g15 g10 y2017 show" data-name="Thor 03" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Thor-3.htm">
+                    <img src="assets/img/Thor-3.jpg">
+                    <div class="title">Thor: Ragnarok</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Thor: Temný svět-->
+        <div class="filterDiv g01 g03 g06 g50 y2013 show" data-name="Thor 02" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Thor-2.htm">
+                    <img src="assets/img/Thor-2.jpg">
+                    <div class="title">Thor: Temný svět</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Thor-->
+        <div class="filterDiv g01 g03 g06 g50 y2002 show" data-name="Thor 01" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Thor-1.htm">
+                    <img src="assets/img/Thor-1.jpg">
+                    <div class="title">Thor</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Terminator Genisys-->
+        <div class="filterDiv g01 g03 g15 y2015 show" data-name="Terminator 05" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Terminator-5.htm">
+                    <img src="assets/img/Terminator-5.jpg">
+                    <div class="title">Terminator Genisys</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Terminator Salvation-->
+        <div class="filterDiv g01 g17 g15 y2009 show" data-name="Terminator 04" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Terminator-4.htm">
+                    <img src="assets/img/Terminator-4.jpg">
+                    <div class="title">Terminator Salvation</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Terminátor 3: Vzpoura strojů-->
+        <div class="filterDiv g01 g17 g15 y2003 show" data-name="Terminátor 03" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Terminator-3.htm">
+                    <img src="assets/img/Terminator-3.jpg">
+                    <div class="title">Terminátor 3: Vzpoura strojů</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Terminátor 2: Den zúčtování-->
+        <div class="filterDiv g01 g17 g15 y1991 show" data-name="Terminátor 02" data-year="1991" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Terminator-2.htm">
+                    <img src="assets/img/Terminator-2.jpg">
+                    <div class="title">Terminátor 2: Den zúčtování</div>
+                    <div class="year">1991</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Terminátor-->
+        <div class="filterDiv g01 g17 g15 y1984 show" data-name="Terminátor 01" data-year="1984" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Terminator.htm">
+                    <img src="assets/img/Terminator-1.jpg">
+                    <div class="title">Terminátor</div>
+                    <div class="year">1984</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Temný rytíř povstal-->
+        <div class="filterDiv g01 g11 g17 g05 g51 y2012 show" data-name="Temný rytíř povstal" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Temny-rytir-povstal.htm">
+                    <img src="assets/img/Temny-rytir-2012.jpg">
+                    <div class="title">Temný rytíř povstal</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Temný rytíř-->
+        <div class="filterDiv g01 g05 g17 g11 g51 y2008 show" data-name="Temný rytíř" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Temny-rytir.htm">
+                    <img src="assets/img/Temny-rytir-2008.jpg">
+                    <div class="title">Temný rytíř</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Šarlotina pavučinka-->
+        <div class="filterDiv g14 g10 g05 g06 y2006 show" data-name="Šarlotina pavučinka" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Sarlotina-pavucinka.htm">
+                    <img src="assets/img/Šarlotina pavučinka.jpg">
+                    <div class="title">Šarlotina pavučinka</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Super Mario Bros. ve filmu-->
+        <div class="filterDiv g01 g02 g03 y2023 show" data-name="Super Mario Bros. ve filmu" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Super-Mario-Bros-movie.htm">
+                    <img src="assets/img/Super-mario-bros-movie.jpg">
+                    <div class="title">Super Mario Bros. ve filmu</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Strážci Galaxie: Volume 3-->
+        <div class="filterDiv g01 g03 g15 g50 y2023 show" data-name="Strážci Galaxie 03" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Strazci-Galaxie-3.htm">
+                    <img src="assets/img/Strazci-galaxie-3.jpg">
+                    <div class="title">Strážci Galaxie: Volume 3</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Strážci Galaxie Vol. 2-->
+        <div class="filterDiv g01 g03 g06 g15 g10 g50 y2017 show" data-name="Strážci Galaxie 02" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Strazci-Galaxie-2.htm">
+                    <img src="assets/img/Strazci-galaxie-2.jpg">
+                    <div class="title">Strážci Galaxie Vol. 2</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Strážci Galaxie-->
+        <div class="filterDiv g01 g03 g06 g15 g10 g50 y2014 show" data-name="Strážci Galaxie 01" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Strazci-Galaxie-1.htm">
+                    <img src="assets/img/Strazci-galaxie-1.jpg">
+                    <div class="title">Strážci Galaxie</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Vzestup Skywalkera-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y2019 show" data-name="Star Wars 09" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-9.htm">
+                    <img src="assets/img/Star-Wars-9.jpg">
+                    <div class="title">Star Wars: Vzestup Skywalkera</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Poslední z Jediů-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y2017 show" data-name="Star Wars 08" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-8.htm">
+                    <img src="assets/img/Star-Wars-8.jpg">
+                    <div class="title">Star Wars: Poslední z Jediů</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Síla se probouzí-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y2015 show" data-name="Star Wars 07" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-7.htm">
+                    <img src="assets/img/Star-Wars-7.jpg">
+                    <div class="title">Star Wars: Síla se probouzí</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Epizoda VI - Návrat Jediů-->
+        <div class="filterDiv g01 g03 g06 g16 g55 y1983 show" data-name="Star Wars 06" data-year="1983" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-6.htm">
+                    <img src="assets/img/Star-Wars-6.jpg">
+                    <div class="title">Star Wars: Epizoda VI - Návrat Jediů</div>
+                    <div class="year">1983</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Epizoda V - Impérium vrací úder-->
+        <div class="filterDiv g1 g03 g06 g15 g55 y1980 show" data-name="Star Wars 05" data-year="1980" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-5.htm">
+                    <img src="assets/img/Star-Wars-5.jpg">
+                    <div class="title">Star Wars: Epizoda V - Impérium vrací úder</div>
+                    <div class="year">1980</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Epizoda IV - Nová naděje-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y1977 show" data-name="Star Wars 04" data-year="1977" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-4.htm">
+                    <img src="assets/img/Star-Wars-4.jpg">
+                    <div class="title">Star Wars: Epizoda IV - Nová naděje</div>
+                    <div class="year">1977</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Epizoda III - Pomsta Sithů-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y2005 show" data-name="Star Wars 03" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-3.htm">
+                    <img src="assets/img/Star-Wars-3.jpg">
+                    <div class="title">Star Wars: Epizoda III - Pomsta Sithů</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Epizoda II - Klony útočí-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y2002 show" data-name="Star Wars 02" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-2.htm">
+                    <img src="assets/img/Star-Wars-2.jpg">
+                    <div class="title">Star Wars: Epizoda II - Klony útočí</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Epizoda I - Skrytá hrozba-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y1999 show" data-name="Star Wars 01" data-year="1999" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-wars-1.htm">
+                    <img src="assets/img/Star-Wars-1.jpg">
+                    <div class="title">Star Wars: Epizoda I - Skrytá hrozba</div>
+                    <div class="year">1999</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Wars: Klonové války-->
+        <div class="filterDiv g01 g02 g03 g15 g55 y2008 show" data-name="Star Wars: Klonové války" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-Wars-The-Clone-Wars-movie.htm">
+                    <img src="assets/img/Star-Wars-Clone-wars.jpg">
+                    <div class="title">Star Wars: Klonové války</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Trek: Do neznáma-->
+        <div class="filterDiv g01 g03 g17 g15 y2016 show" data-name="Star Trek 03" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-Trek-3.htm">
+                    <img src="assets/img/Star-Trek-3.jpg">
+                    <div class="title">Star Trek: Do neznáma</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Trek: Do temnoty-->
+        <div class="filterDiv g01 g03 g17 g15 y2013 show" data-name="Star Trek 02" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-Trek-2.htm">
+                    <img src="assets/img/Star-Trek-2.jpg">
+                    <div class="title">Star Trek: Do temnoty</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Star Trek-->
+        <div class="filterDiv g01 g08 g17 g15 y2002 show" data-name="Star Trek 01" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Star-Trek-1.htm">
+                    <img src="assets/img/Star-Trek-1.jpg">
+                    <div class="title">Star Trek</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Spláchnutej-->
+        <div class="filterDiv g03 g10 g02 g14 y2006 show" data-name="Spláchnutej" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Splachnutej.htm">
+                    <img src="assets/img/splachnutej.jpg">
+                    <div class="title">Spláchnutej</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Spider-Man: Bez domova-->
+        <div class="filterDiv g01 g03 g15 g50 y2021 show" data-name="Spider-Man: Bez domova" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Spider-Man-Bez-domova.htm">
+                    <img src="assets/img/Spider-man-No-way-home.jpg">
+                    <div class="title">Spider-Man: Bez domova</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Spider-Man: Daleko od domova-->
+        <div class="filterDiv g01 g03 g15 g50 y2019 show" data-name="Spider-Man: Daleko od domova" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Spider-Man-Daleko-od-domova.htm">
+                    <img src="assets/img/Spider-man-Far-from-home.jpg">
+                    <div class="title">Spider-Man: Daleko od domova</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Spider-Man: Homecoming-->
+        <div class="filterDiv g01 g03 g15 g50 y2017 show" data-name="Spider-Man: Homecoming" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Spider-Man-Homecoming.htm">
+                    <img src="assets/img/Spider-man-Homecoming.jpg">
+                    <div class="title">Spider-Man: Homecoming</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Spider-Man 3-->
+        <div class="filterDiv g01 g03 g06 y2007 show" data-name="Spider-Man 03" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Spider-Man-3.htm">
+                    <img src="assets/img/Spider-man-3.jpg">
+                    <div class="title">Spider-Man 3</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Spider-Man 2-->
+        <div class="filterDiv g01 g06 y2004 show" data-name="Spider-Man 02" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Spider-Man-2.htm">
+                    <img src="assets/img/Spider-man-2.jpg">
+                    <div class="title">Spider-Man 2</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Spider-Man-->
+        <div class="filterDiv g01 g03 g06 y2002 show" data-name="Spider-Man 01" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Spider-Man.htm">
+                    <img src="assets/img/Spider-man-1.jpg">
+                    <div class="title">Spider-Man</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Souboj Titánů-->
+        <div class="filterDiv g01 g05 g06 g03 y2010 show" data-name="Souboj Titánů" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Souboj-titanu.htm">
+                    <img src="assets/img/Souboj-titanu.jpg">
+                    <div class="title">Souboj Titánů</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Solo: Star Wars Story-->
+        <div class="filterDiv g01 g03 g15 g55 y2018 show" data-name="Solo: Star Wars Story" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Solo-Star-Wars-Story.htm">
+                    <img src="assets/img/Solo-a-Star-Wars-Story.jpg">
+                    <div class="title">Solo: Star Wars Story</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Sněhurka a lovec-->
+        <div class="filterDiv g01 g06 g05 g03 y2012 show" data-name="Sněhurka a lovec" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Snehurka-a-lovec.htm">
+                    <img src="assets/img/Snehurka-a-Lovec.jpg">
+                    <div class="title">Sněhurka a lovec</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Shang-Chi a legenda o deseti prstenech-->
+        <div class="filterDiv g01 g03 g06 g50 y2021 show" data-name="Shang-Chi a legenda o deseti prstenech" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Shang-Chi.htm">
+                    <img src="assets/img/Shang-Chi.jpg">
+                    <div class="title">Shang-Chi a legenda o deseti prstenech</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Sedmý syn-->
+        <div class="filterDiv g01 g03 g06 y2014 show" data-name="Sedmý syn" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Sedmy-syn.htm">
+                    <img src="assets/img/Sedmy-syn.jpg">
+                    <div class="title">Sedmý syn</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Sedmero krkavců-->
+        <div class="filterDiv g26 g06 y2015 show" data-name="Sedmero krkavců" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Sedmero-krkavcu.htm">
+                    <img src="assets/img/Sedmero-krkavcu.jpg">
+                    <div class="title">Sedmero krkavců</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Sebevražedný oddíl-->
+        <div class="filterDiv g01 g03 g06 g15 g51 y2016 show" data-name="Sebevražedný oddíl" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Sebevrazedny-oddil.htm">
+                    <img src="assets/img/Sebevrazedny-oddil.jpg">
+                    <div class="title">Sebevražedný oddíl</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--San Andreas-->
+        <div class="filterDiv g01 g24 g17 g03 g05 y2015 show" data-name="San Andreas" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="San-Andreas.htm">
+                    <img src="assets/img/San-Andreas.jpg">
+                    <div class="title">San Andreas</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Sága: Prokletí stínů-->
+        <div class="filterDiv g01 g06 y2013 show" data-name="Sága: Prokletí stínů" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Saga-prokleti-stinu.htm">
+                    <img src="assets/img/Saga-prokleti-stinu.jpg">
+                    <div class="title">Sága: Prokletí stínů</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Řetězová reakce-->
+        <div class="filterDiv g01 g17 g05 y1996 show" data-name="Řetězová reakce" data-year="1996" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Retezova-reakce.htm">
+                    <img src="assets/img/Retezova-reakce.jpg">
+                    <div class="title">Řetězová reakce</div>
+                    <div class="year">1996</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile: Hobbs a Shaw-->
+        <div class="filterDiv g01 g11 g17 g10 y2019 show" data-name="Rychle a zběsile: Hobbs a Shaw" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-Presents-&-Shaw.htm">
+                    <img src="assets/img/Fast-&-Furious-Presents-&-Shaw.jpg">
+                    <div class="title">Rychle a zběsile: Hobbs a Shaw</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile 10-->
+        <div class="filterDiv g01 g11 g03 g17 y2023 show" data-name="Rychle a zběsile 10" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-X.htm">
+                    <img src="assets/img/Fast-X.jpg">
+                    <div class="title">Rychle a zběsile 10</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile 9-->
+        <div class="filterDiv g01 g11 g17 g03 y2021 show" data-name="Rychle a zběsile 09" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-9.htm">
+                    <img src="assets/img/Fast-&-Furious-9.jpg">
+                    <div class="title">Rychle a zběsile 9</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile 8-->
+        <div class="filterDiv g01 g11 g17 y2017 show" data-name="Rychle a zběsile 08" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-8.htm">
+                    <img src="assets/img/Fast-&-Furious-8.jpg">
+                    <div class="title">Rychle a zběsile 8</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile 7-->
+        <div class="filterDiv g01 g11 g17 y2015 show" data-name="Rychle a zběsile 07" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-7.htm">
+                    <img src="assets/img/Fast-&-Furious-7.jpg">
+                    <div class="title">Rychle a zběsile 7</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile 6-->
+        <div class="filterDiv g01 g11 g17 y2013 show" data-name="Rychle a zběsile 06" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-6.htm">
+                    <img src="assets/img/Fast-&-Furious-6.jpg">
+                    <div class="title">Rychle a zběsile 6</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile 5-->
+        <div class="filterDiv g01 g11 g17 y2011 show" data-name="Rychle a zběsile 05" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-5.htm">
+                    <img src="assets/img/Fast-&-Furious-5.jpg">
+                    <div class="title">Rychle a zběsile 5</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychlí a zběsilí-->
+        <div class="filterDiv g01 g11 g17 g05 y2009 show" data-name="Rychle a zběsile 04" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-4.htm">
+                    <img src="assets/img/Fast-&-Furious-4.jpg">
+                    <div class="title">Rychlí a zběsilí</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile: Tokijská jízda-->
+        <div class="filterDiv g01 g11 g17 y2006 show" data-name="Rychle a zběsile 03" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-3.htm">
+                    <img src="assets/img/Fast-&-Furious-3.jpg">
+                    <div class="title">Rychle a zběsile: Tokijská jízda</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile 2-->
+        <div class="filterDiv g01 g11 g17 y2003 show" data-name="Rychle a zběsile 02" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-2.htm">
+                    <img src="assets/img/Fast-&-Furious-2.jpg">
+                    <div class="title">Rychle a zběsile 2</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rychle a zběsile-->
+        <div class="filterDiv g01 g11 g17 y2001 show" data-name="Rychle a zběsile 01" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fast-&-Furious-1.htm">
+                    <img src="assets/img/Fast-&-Furious-1.jpg">
+                    <div class="title">Rychle a zběsile</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rogue One: Star Wars Story-->
+        <div class="filterDiv g01 g03 g06 g15 g55 y2016 show" data-name="Rogue One: Star Wars Story" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Rogue-One.htm">
+                    <img src="assets/img/Rogue-One.jpg">
+                    <div class="title">Rogue One: Star Wars Story</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rio 2-->
+        <div class="filterDiv g02 g03 g10 g14 y2014 show" data-name="Rio 02" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Rio-2.htm">
+                    <img src="assets/img/Rio-2.jpg">
+                    <div class="title">Rio 2</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rio-->
+        <div class="filterDiv g02 g03 g10 g14 y2011 show" data-name="Rio 01" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Rio.htm">
+                    <img src="assets/img/Rio-1.jpg">
+                    <div class="title">Rio</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Rezistence-->
+        <div class="filterDiv g03 g17 g15 y2015 show" data-name="Rezistence" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Rezistence.htm">
+                    <img src="assets/img/Rezistence.jpg">
+                    <div class="title">Rezistence</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Resident Evil: Poslední kapitola-->
+        <div class="filterDiv g01 g08 g17 g15 y2016 show" data-name="Resident Evil 06" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Resident-Evil-6.htm">
+                    <img src="assets/img/Resident-Evil-6.jpg">
+                    <div class="title">Resident Evil: Poslední kapitola</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Resident Evil: Odveta-->
+        <div class="filterDiv g01 g08 g17 g15 y2012 show" data-name="Resident Evil 05" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Resident-Evil-5.htm">
+                    <img src="assets/img/Resident-Evil-5.jpg">
+                    <div class="title">Resident Evil: Odveta</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Resident Evil: Afterlife-->
+        <div class="filterDiv g01 g08 g17 g15 y2010 show" data-name="Resident Evil 04" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Resident-Evil-4.htm">
+                    <img src="assets/img/Resident-Evil-4.jpg">
+                    <div class="title">Resident Evil: Afterlife</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Resident Evil: Zánik-->
+        <div class="filterDiv g01 g08 g17 g15 y2007 show" data-name="Resident Evil 03" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Resident-Evil-3.htm">
+                    <img src="assets/img/Resident-Evil-3.jpg">
+                    <div class="title">Resident Evil: Zánik</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Resident Evil: Apokalypsa-->
+        <div class="filterDiv g01 g08 g17 g15 y2004 show" data-name="Resident Evil 02" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Resident-Evil-2.htm">
+                    <img src="assets/img/Resident-Evil-2.jpg">
+                    <div class="title">Resident Evil: Apokalypsa</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Resident Evil-->
+        <div class="filterDiv g01 g08 g17 g15 y2002 show" data-name="Resident Evil 01" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Resident-Evil-1.htm">
+                    <img src="assets/img/Resident-Evil-1.jpg">
+                    <div class="title">Resident Evil</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Ready Player One: Hra začíná-->
+        <div class="filterDiv g01 g15 g03 y2018 show" data-name="Ready Player One: Hra začíná" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Ready-Player-One.htm">
+                    <img src="assets/img/Ready-Player-One.jpg">
+                    <div class="title">Ready Player One: Hra začíná</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Příšerky s.r.o.-->
+        <div class="filterDiv g02 g06 g10 g14 y2001 show" data-name="Příšerky s.r.o." data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Monsters-Inc..htm">
+                    <img src="assets/img/Monsters, Inc..jpg">
+                    <div class="title">Příšerky s.r.o.</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Příběh rytíře-->
+        <div class="filterDiv g01 g03 g10 g21 y2001 show" data-name="Příběh rytíře" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pribeh-rytire.htm">
+                    <img src="assets/img/Pribeh-rytire.jfif">
+                    <div class="title">Příběh rytíře</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Princ z Persie: Písky času-->
+        <div class="filterDiv g01 g03 g06 g21 y2010 show" data-name="Princ z Persie: Písky času" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Princ-z-Persie.htm">
+                    <img src="assets/img/princ-of-persia.jpg">
+                    <div class="title">Princ z Persie: Písky času</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky: Holky sobě-->
+        <div class="filterDiv g10 y2020 show" data-name="Prci, prci, prcičky 09" data-year="2020" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-9.htm">
+                    <img src="assets/img/American-Pie-9.jpg">
+                    <div class="title">Prci, prci, prcičky: Holky sobě</div>
+                    <div class="year">2020</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky: Školní sraz-->
+        <div class="filterDiv g10 y2012 show" data-name="Prci, prci, prcičky 08" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-8.htm">
+                    <img src="assets/img/American-Pie-8.jpg">
+                    <div class="title">Prci, prci, prcičky: Školní sraz</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky: Kniha lásky-->
+        <div class="filterDiv g10 y2009 show" data-name="Prci, prci, prcičky 07" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-7.htm">
+                    <img src="assets/img/American-Pie-7.jpg">
+                    <div class="title">Prci, prci, prcičky: Kniha lásky</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky: Spolek Beta-->
+        <div class="filterDiv g10 y2007 show" data-name="Prci, prci, prcičky 06" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-6.htm">
+                    <img src="assets/img/American-Pie-6.jpg">
+                    <div class="title">Prci, prci, prcičky: Spolek Beta</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky: Nahá míle-->
+        <div class="filterDiv g10 y2006 show" data-name="Prci, prci, prcičky 05" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-5.htm">
+                    <img src="assets/img/American-Pie-5.jpg">
+                    <div class="title">Prci, prci, prcičky: Nahá míle</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky: Na táboře-->
+        <div class="filterDiv g10 y2005 show" data-name="Prci, prci, prcičky 04" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-4.htm">
+                    <img src="assets/img/American-Pie-4.jfif">
+                    <div class="title">Prci, prci, prcičky: Na táboře</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky 3: Svatba-->
+        <div class="filterDiv g21 g10 y2003 show" data-name="Prci, prci, prcičky 03" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-3.htm">
+                    <img src="assets/img/American-Pie-3.jpg">
+                    <div class="title">Prci, prci, prcičky 3: Svatba</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky 2-->
+        <div class="filterDiv g21 g10 y2001 show" data-name="Prci, prci, prcičky 02" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-2.htm">
+                    <img src="assets/img/American-Pie-2.jpg">
+                    <div class="title">Prci, prci, prcičky 2</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Prci, prci, prcičky-->
+        <div class="filterDiv g21 g10 y1999 show" data-name="Prci, prci, prcičky 01" data-year="1999" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="American-Pie-1.htm">
+                    <img src="assets/img/American-Pie-1.jpg">
+                    <div class="title">Prci, prci, prcičky</div>
+                    <div class="year">1999</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Poslední lovec čarodějnic-->
+        <div class="filterDiv g01 g03 g06 y2015 show" data-name="Poslední lovec čarodějnic" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Posledni-lovec-carodejnic.htm">
+                    <img src="assets/img/Posledni-lovec-carodejnic.jpg">
+                    <div class="title">Poslední lovec čarodějnic</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Popelka-->
+        <div class="filterDiv g06 g21 g05 g14 y2015 show" data-name="Popelka" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Popelka.htm">
+                    <img src="assets/img/Popelka.jpg">
+                    <div class="title">Popelka</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pompeje-->
+        <div class="filterDiv g24 g07 g03 g01 g21 g05 y2014 show" data-name="Pompeje" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pompeje.htm">
+                    <img src="assets/img/Pompeje.jpg">
+                    <div class="title">Pompeje</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Police Story 2-->
+        <div class="filterDiv g01 g11 g10 g17 y1988 show" data-name="Police Story 2" data-year="1988" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Police-story-2.htm">
+                    <img src="assets/img/Police-story-2.jpg">
+                    <div class="title">Police Story 2</div>
+                    <div class="year">1988</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pokémon: Detektiv Pikachu-->
+        <div class="filterDiv g01 g03 g10 g14 g13 g15 g06 y2019 show" data-name="Pokémon: Detektiv Pikachu" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pokemon-Detektiv-Pikachu.htm">
+                    <img src="assets/img/Pokemon-detektiv-.jpg">
+                    <div class="title">Pokémon: Detektiv Pikachu</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pobřežní hlídka-->
+        <div class="filterDiv g01 g11 g10 y2017 show" data-name="Pobřežní hlídka" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pobřežní-hlídka.htm">
+                    <img src="assets/img/Pobrezni-hlidka.jpg">
+                    <div class="title">Pobřežní hlídka</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Plnou parou vzad!-->
+        <div class="filterDiv g10 y2002 show" data-name="Plnou parou vzad!" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Plnou-parou-vzad.htm">
+                    <img src="assets/img/Plnou-parou-vzad.jpg">
+                    <div class="title">Plnou parou vzad!</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pitch Perfect 2-->
+        <div class="filterDiv g09 g10 y2015 show" data-name="Pitch Perfect 02" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pitch-Perfect-2.htm">
+                    <img src="assets/img/Pitch-perfect-2.jpg">
+                    <div class="title">Pitch Perfect 2</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pitch Perfect-->
+        <div class="filterDiv g09 g21 g10 y2012 show" data-name="Pitch Perfect 01" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pitch-Perfect.htm">
+                    <img src="assets/img/Pitch-perfect-1.jpg">
+                    <div class="title">Pitch Perfect</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Piráti z Karibiku: Salazarova pomsta-->
+        <div class="filterDiv g01 g03 g06 y2017 show" data-name="Piráti z Karibiku 05" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pirati-z-Karibiku-5.htm">
+                    <img src="assets/img/Pirati-z-Karibiku-5.jpg">
+                    <div class="title">Piráti z Karibiku: Salazarova pomsta</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Piráti z Karibiku: Na vlnách podivna-->
+        <div class="filterDiv g01 g03 g06 g10 y2011 show" data-name="Piráti z Karibiku 04" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pirati-z-Karibiku-4.htm">
+                    <img src="assets/img/Pirati-z-Karibiku-4.jpg">
+                    <div class="title">Piráti z Karibiku: Na vlnách podivna</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Piráti z Karibiku: Na konci světa-->
+        <div class="filterDiv g01 g03 g06 g10 y2007 show" data-name="Piráti z Karibiku 03" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pirati-z-Karibiku-3.htm">
+                    <img src="assets/img/Pirati-z-Karibiku-3.jpg">
+                    <div class="title">Piráti z Karibiku: Na konci světa</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Piráti z Karibiku: Truhla mrtvého muže-->
+        <div class="filterDiv g01 g03 g06 g10 y2006 show" data-name="Piráti z Karibiku 02" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pirati-z-Karibiku-2.htm">
+                    <img src="assets/img/Pirati-z-Karibiku-2.jpg">
+                    <div class="title">Piráti z Karibiku: Truhla mrtvého muže</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Piráti z Karibiku: Prokletí Černé perly-->
+        <div class="filterDiv g01 g03 g06 g10 y2003 show" data-name="Piráti z Karibiku 01" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pirati-z-Karibiku-1.htm">
+                    <img src="assets/img/Pirati-z-Karibiku-1.jpg">
+                    <div class="title">Piráti z Karibiku: Prokletí Černé perly</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Periskop nahoru a dolů-->
+        <div class="filterDiv g10 y1996 show" data-name="Periskop nahoru a dolů" data-year="1996" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Periskop-nahoru-a-dolu.htm">
+                    <img src="assets/img/Periskop-nahoru-a-dolu.jpg">
+                    <div class="title">Periskop nahoru a dolů</div>
+                    <div class="year">1996</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pearl Harbor-->
+        <div class="filterDiv g01 g18 g21 g05 g07 y2001 show" data-name="Pearl Harbor" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pearl-Harbor.htm">
+                    <img src="assets/img/Pearl-Harbor.jpg">
+                    <div class="title">Pearl Harbor</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Paralelní světy-->
+        <div class="filterDiv g06 g15 g21 g05 y2012 show" data-name="Paralelní světy" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Parlelni-svety.htm">
+                    <img src="assets/img/paralelni_svety.jpg">
+                    <div class="title">Paralelní světy</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pán prstenů: Návrat krále-->
+        <div class="filterDiv g01 g06 g03 g54 y2003 show" data-name="Pán prstenů 03" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pan-prstenu-3.htm">
+                    <img src="assets/img/Pan-prstenu-3.jpg">
+                    <div class="title">Pán prstenů: Návrat krále</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pán prstenů: Dvě věže-->
+        <div class="filterDiv g01 g06 g03 g54 y2002 show" data-name="Pán prstenů 02" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pan-prstenu-2.htm">
+                    <img src="assets/img/Pan-prstenu-2.jpg">
+                    <div class="title">Pán prstenů: Dvě věže</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pán prstenů: Společenstvo Prstenu-->
+        <div class="filterDiv g01 g06 g03 g54 y2001 show" data-name="Pán prstenů 01" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pan-prstenu-1.htm">
+                    <img src="assets/img/Pan-prstenu-1.jpg">
+                    <div class="title">Pán prstenů: Společenstvo Prstenu</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pán Domu-->
+        <div class="filterDiv g01 g10 y2005 show" data-name="Pán Domu" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pan-Domu.htm">
+                    <img src="assets/img/pan-domu.jpg">
+                    <div class="title">Pán Domu</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pan Včelka-->
+        <div class="filterDiv g02 g10 g14 y2007 show" data-name="Pan Včelka" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pan-vcelka.htm">
+                    <img src="assets/img/Pan-vcelka.jpg">
+                    <div class="title">Pan Včelka</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Padesát odstínů svobody-->
+        <div class="filterDiv g23 g21 g17 g05 y2018 show" data-name="Padesát odstínů 03" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Padesat-odstinu-svobody.htm">
+                    <img src="assets/img/Padesat-odstinu-svobody.jpg">
+                    <div class="title">Padesát odstínů svobody</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Padesát odstínů temnoty-->
+        <div class="filterDiv g05 g21 g23 y2017 show" data-name="Padesát odstínů 02" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Padesat-odstinu-temnoty.htm">
+                    <img src="assets/img/Padesat-odstinu-temnoty.jpg">
+                    <div class="title">Padesát odstínů temnoty</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Padesát odstínů šedi-->
+        <div class="filterDiv g05 g21 g17 g23 y2015 show" data-name="Padesát odstínů 01" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Padesat-odstinu-sedi.htm">
+                    <img src="assets/img/Padesat-odstinu-sedi.jpg">
+                    <div class="title">Padesát odstínů šedi</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pád anděla-->
+        <div class="filterDiv g01 g17 y2019 show" data-name="Pád anděla" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pad-Andela.htm">
+                    <img src="assets/img/Pad-andela.jpg">
+                    <div class="title">Pád anděla</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pád Londýna-->
+        <div class="filterDiv g01 g11 g17 g05 y2016 show" data-name="Pád Londýna" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pad-londyna.htm">
+                    <img src="assets/img/Pad-londyna.jpg">
+                    <div class="title">Pád Londýna</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pád Bílého domu-->
+        <div class="filterDiv g01 g17 y2013 show" data-name="Pád Bílého domu" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pad-bileho-domu.htm">
+                    <img src="assets/img/Pad-bileho-domu.jpg">
+                    <div class="title">Pád Bílého domu</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pacific Rim: Povstání-->
+        <div class="filterDiv g01 g15 g03 y2018 show" data-name="Pacific Rim: Povstání" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pacific-rim-2.htm">
+                    <img src="assets/img/Pacific-rim-2.jpg">
+                    <div class="title">Pacific Rim: Povstání</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Pacific Rim - Útok na Zemi-->
+        <div class="filterDiv g01 g15 g03 y2013 show" data-name="Pacific Rim 01" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Pacific-rim-1.htm">
+                    <img src="assets/img/Pacific-rim.jpg">
+                    <div class="title">Pacific Rim - Útok na Zemi</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Osamělý jezdec-->
+        <div class="filterDiv g01 g03 g19 y2013 show" data-name="Osamělý jezdec" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Osamely-jezdec.htm">
+                    <img src="assets/img/Osamely-jezdec.jpg">
+                    <div class="title">Osamělý jezdec</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Oslava v Ledovém království-->
+        <div class="filterDiv g02 g03 g10 g06 y2015 show" data-name="Oslava v Ledovém království" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Frozen-Fever.htm">
+                    <img src="assets/img/Frozen-Fever.jfif">
+                    <div class="title">Oslava v Ledovém království</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Non-Stop-->
+        <div class="filterDiv g01 g17 g13 y2014 show" data-name="Non-Stop" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Non-Stop.htm">
+                    <img src="assets/img/Non-Stop.jpg">
+                    <div class="title">Non-Stop</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Noc na Karlštejně-->
+        <div class="filterDiv g10 g12 g07 y1973 show" data-name="Noc na Karlštejně" data-year="1973" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Noc-na-Karlštejně.htm">
+                    <img src="assets/img/Noc-na-Karlstejne.jpg">
+                    <div class="title">Noc na Karlštejně</div>
+                    <div class="year">1973</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Nezastavitelný-->
+        <div class="filterDiv g01 g05 g17 y2010 show" data-name="Nezastavitelný" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Nezastavitelny.htm">
+                    <img src="assets/img/Nezastavitelny.jpg">
+                    <div class="title">Nezastavitelný</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Nesvatbovi-->
+        <div class="filterDiv g10 g21 y2005 show" data-name="Nesvatbovi" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Nesvatbovi.htm">
+                    <img src="assets/img/Nesvadbovi.jpg">
+                    <div class="title">Nesvatbovi</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Neuvěřitelný Hulk-->
+        <div class="filterDiv g01 g15 g17 g50 y2008 show" data-name="Neuvěřitelný Hulk" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Neuveritelny-Hulk.htm">
+                    <img src="assets/img/The-Incredible-Hulk.jpg">
+                    <div class="title">Neuvěřitelný Hulk</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Need for Speed-->
+        <div class="filterDiv g01 g11 g17 g05 y2014 show" data-name="Need for Speed" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Need-for-Speed.htm">
+                    <img src="assets/img/Need-for-Speed.jpg">
+                    <div class="title">Need for Speed</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Na hraně zítřka-->
+        <div class="filterDiv g01 g15 g03 y2014 show" data-name="Na hraně zítřka" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Na-hrane-zitrka.htm">
+                    <img src="assets/img/Na-hrane-zitrka.jpg">
+                    <div class="title">Na hraně zítřka</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Můj auťák Brouk-->
+        <div class="filterDiv g03 g06 g10 g21 y2005 show" data-name="Můj auťák Brouk" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Herbie-Fully-Loaded.htm">
+                    <img src="assets/img/Herbie-Fully-Loaded.jpg">
+                    <div class="title">Můj auťák Brouk</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mumie: Hrob Dračího císaře-->
+        <div class="filterDiv g01 g05 g03 g17 y2008 show" data-name="Mumie 03" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mumie-3.htm">
+                    <img src="assets/img/Mumie-3.jpg">
+                    <div class="title">Mumie: Hrob Dračího císaře</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mumie se vrací-->
+        <div class="filterDiv g01 g06 g03 y2001 show" data-name="Mumie 02" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mumie-2.htm">
+                    <img src="assets/img/Mumie-2.jpg">
+                    <div class="title">Mumie se vrací</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mumie-->
+        <div class="filterDiv g01 g06 g03 y1999 show" data-name="Mumie 01" data-year="1999" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mumie.htm">
+                    <img src="assets/img/Mumie.jpg">
+                    <div class="title">Mumie</div>
+                    <div class="year">1999</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mumie-->
+        <div class="filterDiv g06 g03 g01 g17 y2017 show" data-name="Mumie 2017" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="The-Mummy.htm">
+                    <img src="assets/img/The-Mummy.jpg">
+                    <div class="title">Mumie</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Moulin Rouge-->
+        <div class="filterDiv g12 g21 g05 y2001 show" data-name="Moulin Rouge" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Moulin-Rouge.htm">
+                    <img src="assets/img/Moulin-Rouge.jpg">
+                    <div class="title">Moulin Rouge</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mortal Instruments: Město z kostí-->
+        <div class="filterDiv g01 g06 g05 g03 g13 g21 g08 y2013 show" data-name="Mortal Instruments: Město z kostí" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mortal-Instruments.htm">
+                    <img src="assets/img/The-Mortal-Instruments.jpg">
+                    <div class="title">Mortal Instruments: Město z kostí</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+        
+        <!--Mission: Impossible Odplata - První část-->
+        <div class="filterDiv g01 g03 g17 y2023 show" data-name="Mission: Impossible 07" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mission-Impossible-7.htm">
+                    <img src="assets/img/Mission-Impossible-7.jpg">
+                    <div class="title">Mission: Impossible Odplata - První část</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mission: Impossible - Fallout-->
+        <div class="filterDiv g01 g03 g17 y2018 show" data-name="Mission: Impossible 06" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mission-Impossible-6.htm">
+                    <img src="assets/img/Mission-Impossible-6.jpg">
+                    <div class="title">Mission: Impossible - Fallout</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mission: Impossible - Národ grázlů-->
+        <div class="filterDiv g01 g06 g17 y2015 show" data-name="Mission: Impossible 05" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mission-Impossible-5.htm">
+                    <img src="assets/img/Mission-Impossible-5.jpg">
+                    <div class="title">Mission: Impossible - Národ grázlů</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mission: Impossible - Ghost Protocol-->
+        <div class="filterDiv g01 g03 g17 y2011 show" data-name="Mission: Impossible 04" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mission-Impossible-4.htm">
+                    <img src="assets/img/Mission-Impossible-4.jpg">
+                    <div class="title">Mission: Impossible - Ghost Protocol</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mission: Impossible III-->
+        <div class="filterDiv g01 g03 g17 y2006 show" data-name="Mission: Impossible 03" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mission-Impossible-3.htm">
+                    <img src="assets/img/Mission-Impossible-3.jpg">
+                    <div class="title">Mission: Impossible III</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mission: Impossible II-->
+        <div class="filterDiv g01 g03 g17 y2000 show" data-name="Mission: Impossible 02" data-year="2000" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mission-Impossible-2.htm">
+                    <img src="assets/img/Mission-Impossible-2.jpg">
+                    <div class="title">Mission: Impossible II</div>
+                    <div class="year">2000</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mission: Impossible-->
+        <div class="filterDiv g01 g03 g17 y1996 show" data-name="Mission: Impossible 01" data-year="1996" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mission-Impossible.htm">
+                    <img src="assets/img/Mission-Impossible-1.jpg">
+                    <div class="title"></div>
+                    <div class="year">1996</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Minecraft film-->
+        <div class="filterDiv g01 g03 g10 g06 g14 y2025 show" data-name="Minecraft film" data-year="2025" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Minecraft-movie.htm">
+                    <img src="assets/img/Minecraft-movie.jpg">
+                    <div class="title">Minecraft film</div>
+                    <div class="year">2025</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Městský lovec-->
+        <div class="filterDiv g01 g10 g21 y1993 show" data-name="Městský lovec" data-year="1993" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mestský-lovec.htm">
+                    <img src="assets/img/Mestsky-lovec.jpg">
+                    <div class="title">Městský lovec</div>
+                    <div class="year">1993</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mezi živly-->
+        <div class="filterDiv g02 g03 g10 g14 g06 y2023 show" data-name="Mezi živly" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mezi-zivly.htm">
+                    <img src="assets/img/mezi-zivly.jpeg">
+                    <div class="title">Mezi živly</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mezi námi zvířaty-->
+        <div class="filterDiv g02 g14 g10 y2006 show" data-name="Mezi námi zvířaty" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mezi-nami-zviraty.htm">
+                    <img src="assets/img/Mezi-nami-zviraty.jpg">
+                    <div class="title">Mezi námi zvířaty</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--MEG: Monstrum z hlubin-->
+        <div class="filterDiv g y2018 show" data-name="MEG 01" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Meg.htm">
+                    <img src="assets/img/The-meg.jpg">
+                    <div class="title">MEG: Monstrum z hlubin</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mavka: Strážkyně lesa-->
+        <div class="filterDiv g02 g06 g10 y2022 show" data-name="Mavka: Strážkyně lesa" data-year="2022" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mavka.htm">
+                    <img src="assets/img/Mavka.jpg">
+                    <div class="title">Mavka: Strážkyně lesa</div>
+                    <div class="year">2022</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Maska-->
+        <div class="filterDiv g01 g11 g10 g06 y1994 show" data-name="Maska" data-year="1994" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Maska.htm">
+                    <img src="assets/img/The-mask.jpg">
+                    <div class="title">Maska</div>
+                    <div class="year">1994</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Marťan-->
+        <div class="filterDiv g15 g03 g05 y2015 show" data-name="Marťan" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Martan.htm">
+                    <img src="assets/img/Martan.jpg">
+                    <div class="title">Marťan</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mamma Mia!-->
+        <div class="filterDiv g12 g21 g10 y2008 show" data-name="Mamma Mia!" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mamma-Mia.htm">
+                    <img src="assets/img/Mamma-Mia.jpg">
+                    <div class="title">Mamma Mia!</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Mad Max: Zběsilá cesta-->
+        <div class="filterDiv g01 g03 g17 g15 y2015 show" data-name="Mad Max: Zběsilá cesta" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Mad-Max-Fury-road.htm">
+                    <img src="assets/img/Mad-Max-Fury-road.jpg">
+                    <div class="title">Mad Max: Zběsilá cesta</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Madagaskar 3-->
+        <div class="filterDiv g02 g03 g10 g14 y2012 show" data-name="Madagaskar 03" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="madagascar-3.htm">
+                    <img src="assets/img/madagascar-3.jpg">
+                    <div class="title">Madagaskar 3</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Madagaskar 2: Útěk do Afriky-->
+        <div class="filterDiv g02 g03 g10 g14 y2008 show" data-name="Madagaskar 02" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="madagascar-2.htm">
+                    <img src="assets/img/madagascar-2.jpg">
+                    <div class="title">Madagaskar 2: Útěk do Afriky</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Madagaskar-->
+        <div class="filterDiv g02 g03 g10 g14 y2005 show" data-name="Madagaskar 01" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="madagascar.htm">
+                    <img src="assets/img/madagascar.jpg">
+                    <div class="title">Madagaskar</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Lví král 3: Hakuna Matata-->
+        <div class="filterDiv g02 g10 g14 g03 y2004 show" data-name="Lví král 03" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Lvi-kral-3.htm">
+                    <img src="assets/img/Lvi-kral-3.jpg">
+                    <div class="title">Lví král 3: Hakuna Matata</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Lví král 2: Simbův příběh-->
+        <div class="filterDiv g02 g03 g14 g12 y1998 show" data-name="Lví král 02" data-year="1998" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Lvi-kral-2.htm">
+                    <img src="assets/img/Lvi-kral-2.jpg">
+                    <div class="title">Lví král 2: Simbův příběh</div>
+                    <div class="year">1998</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Lví král-->
+        <div class="filterDiv g02 g03 g05 g14 g12 y1994 show" data-name="Lví král 01" data-year="1994" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Lvi-kral.htm">
+                    <img src="assets/img/Lvi-kral-1.jpg">
+                    <div class="title">Lví král</div>
+                    <div class="year">1994</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Lovec: Zimní válka-->
+        <div class="filterDiv g01 g03 g05 g06 y2016 show" data-name="Lovec: Zimní válka" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Lovec-Zimni-valka.htm">
+                    <img src="assets/img/Huntsman-winters-war.jpg">
+                    <div class="title">Lovec: Zimní válka</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Lovci pokladů: Kniha tajemství-->
+        <div class="filterDiv g01 g03 g17 g13 y2007 show" data-name="Lovci pokladů 02" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Lovci-pokladu-2.htm">
+                    <img src="assets/img/Lovci-pokladu-2.jpg">
+                    <div class="title">Lovci pokladů: Kniha tajemství</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Lovci pokladů-->
+        <div class="filterDiv g01 g03 g17 g14 g13 y2004 show" data-name="Lovci pokladů 01" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Lovci-pokladu.htm">
+                    <img src="assets/img/Lovci-pokladu-1.jpg">
+                    <div class="title">Lovci pokladů</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Loudilové-->
+        <div class="filterDiv g10 y2009 show" data-name="Loudilové" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Loudilove.htm">
+                    <img src="assets/img/Loudilove.jfif">
+                    <div class="title">Loudilové</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Liga spravedlnosti-->
+        <div class="filterDiv g01 g03 g06 g15 g51 y2017 show" data-name="Liga spravedlnosti" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Justice-League.htm">
+                    <img src="assets/img/Justice-League.jpg">
+                    <div class="title">Liga spravedlnosti</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Let's Dance All In-->
+        <div class="filterDiv g05 g21 g09 y2014 show" data-name="Let's Dance 05" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Let's-Dance-5.htm">
+                    <img src="assets/img/Let's-Dance-5.jpg">
+                    <div class="title">Let's Dance All In</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Let’s Dance: Revolution-->
+        <div class="filterDiv g09 g21 g05 y2012 show" data-name="Let’s Dance 04" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Let's-Dance-4.htm">
+                    <img src="assets/img/Let's-Dance-4.jfif">
+                    <div class="title">Let’s Dance: Revolution</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Let's Dance 3D-->
+        <div class="filterDiv g05 g21 g09 y2010 show" data-name="Let's Dance 03" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Let's-Dance-3.htm">
+                    <img src="assets/img/Let's-Dance-3.jpg">
+                    <div class="title">Let's Dance 3D</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Let's Dance 2-->
+        <div class="filterDiv g05 g21 g09 y2008 show" data-name="Let's Dance 02" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Let's-Dance-2.htm">
+                    <img src="assets/img/Let's-Dance-2.jpg">
+                    <div class="title">Let's Dance 2</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Let's Dance-->
+        <div class="filterDiv g05 g21 g09 y2006 show" data-name="Let's Dance 01" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Let's-Dance.htm">
+                    <img src="assets/img/Let's-Dance.jpg">
+                    <div class="title">Let's Dance</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Letopisy Narnie: Plavba Jitřního poutníka-->
+        <div class="filterDiv g03 g14 g06 y2010 show" data-name="Letopisy Narnie 03" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Letopisy-Narnie-3.htm">
+                    <img src="assets/img/Letopisy-Narnie-3.jpg">
+                    <div class="title">Letopisy Narnie: Plavba Jitřního poutníka</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Letopisy Narnie: Princ Kaspian-->
+        <div class="filterDiv g03 g14 g06 y2008 show" data-name="Letopisy Narnie 02" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Letopisy-Narnie-2.htm">
+                    <img src="assets/img/Letopisy-Narnie-2.jpg">
+                    <div class="title">Letopisy Narnie: Princ Kaspian</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Letopisy Narnie: Lev, čarodějnice a skříň-->
+        <div class="filterDiv g03 g14 06 y2005 show" data-name="Letopisy Narnie 01" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Letopisy-Narnie-1.htm">
+                    <img src="assets/img/Letopisy-Narnie-1.jpg">
+                    <div class="title">Letopisy Narnie: Lev, čarodějnice a skříň</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Legenda o drakovi-->
+        <div class="filterDiv g06 y2015 show" data-name="Legenda o drakovi" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="On-Drakon.htm">
+                    <img src="assets/img/On-Drakon.jpg">
+                    <div class="title">Legenda o drakovi</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Legenda jménem T-34-->
+        <div class="filterDiv g01 g18 g05 y2018 show" data-name="Legenda jménem T-34" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="T-34.htm">
+                    <img src="assets/img/T-34.jpg">
+                    <div class="title">Legenda jménem T-34</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Letadla-->
+        <div class="filterDiv g02 g03 g10 g14 y2013 show" data-name="Letadla" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Letadla.htm">
+                    <img src="assets/img/Letadla.jpg">
+                    <div class="title">Letadla</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Ledové ostří-->
+        <div class="filterDiv g05 g10 g21 g16 y1992 show" data-name="Ledové ostří" data-year="1992" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Ledove-ostri.htm">
+                    <img src="assets/img/Ledove-ostri.jpg">
+                    <div class="title">Ledové ostří</div>
+                    <div class="year">1992</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Ledové království II-->
+        <div class="filterDiv g02 g12 g06 g03 g10 g14 y2019 show" data-name="Ledové království 02" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Frozen-2.htm">
+                    <img src="assets/img/Frozen-2.jpg">
+                    <div class="title">Ledové království II</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Ledové království-->
+        <div class="filterDiv g02 g12 g06 g03 g10 g14 y2013 show" data-name="Ledové království 01" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Frozen.htm">
+                    <img src="assets/img/Frozen.jpg">
+                    <div class="title">Ledové království</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Láska nebeská-->
+        <div class="filterDiv g10 g05 g21 y2003 show" data-name="Láska nebeská" data-year="2003" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Love-Actually.htm">
+                    <img src="assets/img/LoveActually.jpg">
+                    <div class="title">Láska nebeská</div>
+                    <div class="year">2003</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kurýr 3-->
+        <div class="filterDiv g01 g11 g17 g13 g03 y2008 show" data-name="Kurýr 03" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kuryr-3.htm">
+                    <img src="assets/img/Kuryr-3.jpg">
+                    <div class="title">Kurýr 3</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kurýr 2-->
+        <div class="filterDiv g01 g11 g17 y2005 show" data-name="Kurýr 02" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kuryr-2.htm">
+                    <img src="assets/img/Kuryr-2.jpg">
+                    <div class="title">Kurýr 2</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kurýr-->
+        <div class="filterDiv g01 g11 g17 y2002 show" data-name="Kurýr 01" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kuryr-1.htm">
+                    <img src="assets/img/Kuryr-1.jpg">
+                    <div class="title">Kurýr</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kung fu Yoga-->
+        <div class="filterDiv g13 g06 g03 g01 g10 y2017 show" data-name="Kung fu Yoga" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kung-Fu-Yoga.htm">
+                    <img src="assets/img/Kung-fu-joga.jpg">
+                    <div class="title">Kung fu Yoga</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Křižovatka smrti 3 - Tentokráte v Paříži-->
+        <div class="filterDiv g01 g11 g10 g17 y2007 show" data-name="Křižovatka smrti 03" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Krizovatka-smrti-3.htm">
+                    <img src="assets/img/Krizovatka-smrti-3.jpg">
+                    <div class="title">Křižovatka smrti 3 - Tentokráte v Paříži</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Křižovatka smrti 2-->
+        <div class="filterDiv g01 g 11 g10 g17 y2001 show" data-name="Křižovatka smrti 02" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Krizovatka-smrti-2.htm">
+                    <img src="assets/img/Krizovatka-smrti-2.jpg">
+                    <div class="title">Křižovatka smrti 2</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Křižovatka smrti 1-->
+        <div class="filterDiv g01 g11 g10 g17 y1998 show" data-name="Křižovatka smrti 01" data-year="1998" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Krizovatka-smrti-1.htm">
+                    <img src="assets/img/Krizovatka-smrti-1.jpg">
+                    <div class="title">Křižovatka smrti 1</div>
+                    <div class="year">1998</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Král Artuš: Legenda o meči-->
+        <div class="filterDiv g01 g03 g05 g06 y2017 show" data-name="Král Artuš: Legenda o meči" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kral-Artus-Legenda-o-meci.htm">
+                    <img src="assets/img/Kral-Artus-legenda-o-meci.jpg">
+                    <div class="title">Král Artuš: Legenda o meči</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kovbojové a vetřelci-->
+        <div class="filterDiv g01 g17 g19 g15 y2011 show" data-name="Kovbojové a vetřelci" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kovbojove-a-vetrelci.htm">
+                    <img src="assets/img/Kovbojove-a-vetrelco.jfif">
+                    <div class="title">Kovbojové a vetřelci</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kouzelná romance-->
+        <div class="filterDiv g10 g21 g14 g12 g06 y2007 show" data-name="Kouzelná romance" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Enchanted.htm">
+                    <img src="assets/img/Enchanted.jpg">
+                    <div class="title">Kouzelná romance</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Konečně doma-->
+        <div class="filterDiv g02 g03 g10 g14 g06 g15 y2015 show" data-name="Konečně doma" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Konecne-doma.htm">
+                    <img src="assets/img/konecne-doma.jpg">
+                    <div class="title">Konečně doma</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kingsglaive: Final Fantasy XV-->
+        <div class="filterDiv g01 g02 g03 g05 g06 g15 y2016 show" data-name="Kingsglaive: Final Fantasy XV" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kingsglaive-Final-Fantasy-XV.htm">
+                    <img src="assets/img/Kingsglaive-Final-Fantasy-XV.jpg">
+                    <div class="title">Kingsglaive: Final Fantasy XV</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Kazatel-->
+        <div class="filterDiv g01 g08 g17 g15 g06 y2011 show" data-name="Kazatel" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Kazatel.htm">
+                    <img src="assets/img/Kazatel.jpg">
+                    <div class="title">Kazatel</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Jurský svět: Nadvláda-->
+        <div class="filterDiv g01 g03 g15 y2022 show" data-name="Jurský svět 03" data-year="2022" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Jurassic-World-3.htm">
+                    <img src="assets/img/Jurassic-World-3.jpg">
+                    <div class="title">Jurský svět: Nadvláda</div>
+                    <div class="year">2022</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Jurský svět: Zánik říše-->
+        <div class="filterDiv g01 g03 g15 y2018 show" data-name="Jurský svět 02" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Jurassic-World-2.htm">
+                    <img src="assets/img/Jurassic-World-2.jpg">
+                    <div class="title">Jurský svět: Zánik říše</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Jurský svět-->
+        <div class="filterDiv g01 g03 g15 y2015 show" data-name="Jurský svět 01" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Jurassic-World.htm">
+                    <img src="assets/img/Jurassic-World.jpg">
+                    <div class="title">Jurský svět</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--John Wick: Kapitola 4-->
+        <div class="filterDiv g01 g11 g17 y2023 show" data-name="John Wick 04" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="John-Wick-4.htm">
+                    <img src="assets/img/John-Wick-4.jpg">
+                    <div class="title">John Wick: Kapitola 4</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--John Wick 3-->
+        <div class="filterDiv g01 g11 g17 y2019 show" data-name="John Wick 03" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="John-Wick-3.htm">
+                    <img src="assets/img/John-Wick-3.jpg">
+                    <div class="title">John Wick 3</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--John Wick 2-->
+        <div class="filterDiv g01 g11 g17 y2017 show" data-name="John Wick 02" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="John-Wick-2.htm">
+                    <img src="assets/img/John-Wick-2.jpg">
+                    <div class="title">John Wick 2</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--John Wick-->
+        <div class="filterDiv g01 g11 g17 y2014 show" data-name="John Wick 01" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="John-Wick-1.htm">
+                    <img src="assets/img/John-Wick-1.jpg">
+                    <div class="title">John Wick</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Jeníček a Mařenka: Lovci čarodějnic-->
+        <div class="filterDiv g01 g06 g03 g08 y2013 show" data-name="Jeníček a Mařenka: Lovci čarodějnic" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hansel-&-Gretel-Witch-Hunters.htm">
+                    <img src="assets/img/Hansel-&-Gretel-Witch-Hunters.jpg">
+                    <div class="title">Jeníček a Mařenka: Lovci čarodějnic</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Jack Reacher: Nevracej se-->
+        <div class="filterDiv g01 g11 g05 g13 g17 y2016 show" data-name="Jack Reacher 02" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Jack-Reacher-Never-go.back.htm">
+                    <img src="assets/img/Jack-Reacher-never-go-back.jpg">
+                    <div class="title">Jack Reacher: Nevracej se</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Jack Reacher: Poslední výstřel-->
+        <div class="filterDiv g01 g11 g17 g13 y2012 show" data-name="Jack Reacher 01" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Jack-Reacher.htm">
+                    <img src="assets/img/Jack-Reacher.jpg">
+                    <div class="title">Jack Reacher: Poslední výstřel</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Iron Sky-->
+        <div class="filterDiv g01 g15 g10 y2012 show" data-name="Iron Sky" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Iron-Sky.htm">
+                    <img src="assets/img/Iron-Sky.jpg">
+                    <div class="title">Iron Sky</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Iron Man 3-->
+        <div class="filterDiv g01 g15 g06 g03 g50 y2013 show" data-name="Iron Man 03" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Iron-man-3.htm">
+                    <img src="assets/img/Iron-man-3.jpg">
+                    <div class="title">Iron Man 3</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Iron Man 2-->
+        <div class="filterDiv g01 g03 g15 g50 y2010 show" data-name="Iron Man 02" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Iron-man-2.htm">
+                    <img src="assets/img/Iron-man-2.jpg">
+                    <div class="title">Iron Man 2</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Iron Man-->
+        <div class="filterDiv g01 g03 g15 g50 y2000 show" data-name="Iron Man 01" data-year="2000" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Iron-man-1.htm">
+                    <img src="assets/img/Iron-man-1.jfif">
+                    <div class="title">Iron Man</div>
+                    <div class="year">2000</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Instinkt lovce-->
+        <div class="filterDiv g01 g21 g10 y1999 show" data-name="Instinkt lovce" data-year="1999" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Instikt-lovce.htm">
+                    <img src="assets/img/Instinkt-lovce.jpg">
+                    <div class="title">Instinkt lovce</div>
+                    <div class="year">1999</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hvězdy nám nepřály-->
+        <div class="filterDiv g05 g21 y2014 show" data-name="Hvězdy nám nepřály" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hvezdy-nam-nepraly.htm">
+                    <img src="assets/img/Hvezdy-nam-nepraly.jpg">
+                    <div class="title">Hvězdy nám nepřály</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hvězdný prach-->
+        <div class="filterDiv g06 g03 g21 g14 y2007 show" data-name="Hvězdný prach" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Stardust.htm">
+                    <img src="assets/img/Stardust.jpg">
+                    <div class="title">Hvězdný prach</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hvězdná brána: Archa pravdy-->
+        <div class="filterDiv g01 g15 g03 y2008 show" data-name="Hvězdná brána: Archa pravdy" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hvezna-brana-Archa-pravdy.htm">
+                    <img src="assets/img/Hvezdna-brána-archa-pravdy.jfif">
+                    <div class="title">Hvězdná brána: Archa pravdy</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hotel Transylvánie: Transformánie-->
+        <div class="filterDiv g02 g03 g06 g10 g14 y2022 show" data-name="Hotel Transylvánie 04" data-year="2022" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hotel-Transylvánie-4.htm">
+                    <img src="assets/img/Hotel-Transylvanie-4.jpg">
+                    <div class="title">Hotel Transylvánie: Transformánie</div>
+                    <div class="year">2022</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hotel Transylvánie 3: Příšerózní dovolená-->
+        <div class="filterDiv g02 g06 g03 g10 g14 y2018 show" data-name="Hotel Transylvánie 03" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hotel-Transylvánie-3.htm">
+                    <img src="assets/img/Hotel-Transylvanie-3.jpg">
+                    <div class="title">Hotel Transylvánie 3: Příšerózní dovolená</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hotel Transylvánie 2-->
+        <div class="filterDiv g02 g10 g14 y2015 show" data-name="Hotel Transylvánie 02" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hotel-Transylvánie-2.htm">
+                    <img src="assets/img/Hotel-Transylvanie-2.jpg">
+                    <div class="title">Hotel Transylvánie 2</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hotel Transylvánie-->
+        <div class="filterDiv g02 g10 g14 y2012 show" data-name="Hotel Transylvánie 01" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hotel-Transylvánie-1.htm">
+                    <img src="assets/img/Hotel-Transylvánie-1.jpg">
+                    <div class="title">Hotel Transylvánie</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hon na čarodějnice-->
+        <div class="filterDiv g01 g03 g06 y2011 show" data-name="Hon na čarodějnice" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hon-na-carodejnice.htm">
+                    <img src="assets/img/Hon-na-carodejnice.jpg">
+                    <div class="title">Hon na čarodějnice</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Holka s prknem-->
+        <div class="filterDiv g21 g10 y2011 show" data-name="Holka s prknem" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Holka-s-prknem.htm">
+                    <img src="assets/img/Holka-s-prknem.jpg">
+                    <div class="title">Holka s prknem</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hobit: Bitva pěti armád-->
+        <div class="filterDiv g03 g06 g54 y2014 show" data-name="Hobit 03" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hobit-3.htm">
+                    <img src="assets/img/Hobit-3.jpg">
+                    <div class="title">Hobit: Bitva pěti armád</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hobit: Šmakova dračí poušť-->
+        <div class="filterDiv g03 g06 g54 y2013 show" data-name="Hobit 02" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hobit-2.htm">
+                    <img src="assets/img/Hobit-2.jpg">
+                    <div class="title">Hobit: Šmakova dračí poušť</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hobit: Neočekávaná cesta-->
+        <div class="filterDiv g03 g06 g54 y2012 show" data-name="Hobit 01" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hobit-1.htm">
+                    <img src="assets/img/Hobit-1.jfif">
+                    <div class="title">Hobit: Neočekávaná cesta</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hlavně nezávazně-->
+        <div class="filterDiv g10 g21 y2011 show" data-name="Hlavně nezávazně" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="No-Strings-Attached.htm">
+                    <img src="assets/img/No-Strings-Attached.jpg">
+                    <div class="title">Hlavně nezávazně</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hněv Titánů-->
+        <div class="filterDiv g01 g03 g06 y2012 show" data-name="Hněv Titánů" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hnev-titatu.htm">
+                    <img src="assets/img/hnev-titanu.jpg">
+                    <div class="title">Hněv Titánů</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hitman: Agent 47-->
+        <div class="filterDiv g01 g11 g17 y2015 show" data-name="Hitman: Agent 47" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hitman-Agent-47.htm">
+                    <img src="assets/img/Hitman-Agent-47.jpg">
+                    <div class="title">Hitman: Agent 47</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--High School Musical 3: Maturitní ročník-->
+        <div class="filterDiv g12 g14 g10 g21 y2008 show" data-name="High School Musical 03" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="High-School-Musical-3.htm">
+                    <img src="assets/img/High-School-Musical-3.jpg">
+                    <div class="title">High School Musical 3: Maturitní ročník</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--High School Musical 2-->
+        <div class="filterDiv g14 g05 g10 g12 y2007 show" data-name="High School Musical 02" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="High-School-Musical-2.htm">
+                    <img src="assets/img/High-School-Musical-2.jpg">
+                    <div class="title">High School Musical 2</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--High School Musical-->
+        <div class="filterDiv g14 g05 g10 g12 y2006 show" data-name="High School Musical 01" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="High-School-Musical.htm">
+                    <img src="assets/img/High-School-Musical.jpg">
+                    <div class="title">High School Musical</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a Relikvie smrti - část 2-->
+        <div class="filterDiv g06 g14 g03 g05 g52 y2011 show" data-name="Harry Potter 08" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-8.htm">
+                    <img src="assets/img/Harry-Potter-and-the-Deathly-Hallows--Part-2.jpg">
+                    <div class="title">Harry Potter a Relikvie smrti - část 2</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a Relikvie smrti - část 1-->
+        <div class="filterDiv g06 g14 g03 g05 g52 y2010 show" data-name="Harry Potter 07" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-7.htm">
+                    <img src="assets/img/harry-potter-relikvie-smrti-1.jpg">
+                    <div class="title">Harry Potter a Relikvie smrti - část 1</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a Princ dvojí krve-->
+        <div class="filterDiv g06 g14 g03 g13 g52 y2009 show" data-name="Harry Potter 06" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-6.htm">
+                    <img src="assets/img/harry-potter-princ-dvoji-krve.jpg">
+                    <div class="title">Harry Potter a Princ dvojí krve</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a Fénixův řád-->
+        <div class="filterDiv g06 g14 g03 g05 g52 y2007 show" data-name="Harry Potter 05" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-5.htm">
+                    <img src="assets/img/harry-potter-fenixuv-rad.jpg">
+                    <div class="title">Harry Potter a Fénixův řád</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a Ohnivý pohár-->
+        <div class="filterDiv g06 g14 g03 g05 g52 y2005 show" data-name="Harry Potter 04" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-4.htm">
+                    <img src="assets/img/Harry-Potter-a-Ohnivy-pohar.jpg">
+                    <div class="title">Harry Potter a Ohnivý pohár</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a vězeň z Azkabanu-->
+        <div class="filterDiv g06 g14 g03 g13 g52 y2004 show" data-name="Harry Potter 03" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-3.htm">
+                    <img src="assets/img/harry-potter-vezen-z-azkabanu.jpg">
+                    <div class="title">Harry Potter a vězeň z Azkabanu</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a Tajemná komnata-->
+        <div class="filterDiv g06 g14 g03 g13 g52 y2002 show" data-name="Harry Potter 02" data-year="2002" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-2.htm">
+                    <img src="assets/img/harry-potter-a-tajemna-komnata.jpg">
+                    <div class="title">Harry Potter a Tajemná komnata</div>
+                    <div class="year">2002</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Harry Potter a Kámen mudrců-->
+        <div class="filterDiv g06 g14 g03 g13 g52 y2001 show" data-name="Harry Potter 01" data-year="2001" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Harry-Potter-1.htm">
+                    <img src="assets/img/harry-potter-kamen-mudrcu.jpg">
+                    <div class="title">Harry Potter a Kámen mudrců</div>
+                    <div class="year">2001</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Hancock-->
+        <div class="filterDiv g01 g11 g10 g06 y2008 show" data-name="Hancock" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Hancock.htm">
+                    <img src="assets/img/Hancock.jfif">
+                    <div class="title">Hancock</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Green Lantern-->
+        <div class="filterDiv g01 g15 g17 g03 y2011 show" data-name="Green Lantern" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Green-Lantern.htm">
+                    <img src="assets/img/Green-Lantern.jpg">
+                    <div class="title">Green Lantern</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Gran Turismo-->
+        <div class="filterDiv g01 g16 g05 g03 y2023 show" data-name="Gran Turismo" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Gran-Turismo.htm">
+                    <img src="assets/img/Gran-Turismo.jpg">
+                    <div class="title">Gran Turismo</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Godzilla x Kong: Nové impérium-->
+        <div class="filterDiv g01 g03 g15 g17 y2024 show" data-name="Godzilla 04" data-year="2024" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Godzilla-vs.-Kong-new-empire.htm">
+                    <img src="assets/img/godzilla-vs-kong-new-empire.jpg">
+                    <div class="title">Godzilla x Kong: Nové impérium</div>
+                    <div class="year">2024</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Godzilla vs. Kong-->
+        <div class="filterDiv g01 g15 g17 y2021 show" data-name="Godzilla 03" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Godzilla-vs.-Kong.htm">
+                    <img src="assets/img/godzilla-vs-kong.jpg">
+                    <div class="title">Godzilla vs. Kong</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Godzilla II: Král monster-->
+        <div class="filterDiv g01 g03 g17 g15 y2019 show" data-name="Godzilla 02" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Godzilla-II-Král-monster.htm">
+                    <img src="assets/img/Godzilla-II-Král-monster.jpg">
+                    <div class="title">Godzilla II: Král monster</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Godzilla-->
+        <div class="filterDiv g01 g03 g17 g15 y2014 show" data-name="Godzilla 01" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Godzilla.htm">
+                    <img src="assets/img/Godzilla.jpg">
+                    <div class="title">Godzilla</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Geostorm: Globální nebezpečí-->
+        <div class="filterDiv g01 g11 17g y2017 show" data-name="Geostorm: Globální nebezpečí" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Geostorm.htm">
+                    <img src="assets/img/Geostorm.jpg">
+                    <div class="title">Geostorm: Globální nebezpečí</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--G. I. Joe 2: Odveta-->
+        <div class="filterDiv g01 g11 g17 y2013 show" data-name="G. I. Joe 02" data-year="2013" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="G.-I.-Joe-2.htm">
+                    <img src="assets/img/G.I.Joe-2.jpg">
+                    <div class="title">G. I. Joe 2: Odveta</div>
+                    <div class="year">2013</div>
+                </a>
+            </div>
+        </div>
+
+        <!--G. I. Joe-->
+        <div class="filterDiv g01 g03 g17 g15 y2009 show" data-name="G. I. Joe 01" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="G.-I.-Joe.htm">
+                    <img src="assets/img/G.I.Joe.jpg">
+                    <div class="title">G. I. Joe</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--G-Force-->
+        <div class="filterDiv g01 g03 g14 g06 g02 y2009 show" data-name="G-Force" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="G-Force.htm">
+                    <img src="assets/img/G-Force.jpg">
+                    <div class="title">G-Force</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Free Guy-->
+        <div class="filterDiv g01 03 g10 g15 y2021 show" data-name="Free Guy" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Free-Guy.htm">
+                    <img src="assets/img/free-guy.jpg">
+                    <div class="title">Free Guy</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Flynn Carsen 3: Jidášův kalich-->
+        <div class="filterDiv g01 g03 g06 y2008 show" data-name="Flynn Carsen 03" data-year="2008" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Flynn-Carsen-3-Jidasuv-kalich.htm">
+                    <img src="assets/img/Flynn-Carsen-3-Jidasuv-kalich.jpg">
+                    <div class="title">Flynn Carsen 3: Jidášův kalich</div>
+                    <div class="year">2008</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Flynn Carsen 2: Návrat do dolů krále Šalamouna-->
+        <div class="filterDiv g01 g03 g06 y2006 show" data-name="Flynn Carsen 02" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Flynn-Carsen-2-Návrat-do-dolů-krále-Šalamouna.htm">
+                    <img src="assets/img/Flynn-Carsen-2-navrat-do-dolu-krale-salamouna.jpg">
+                    <div class="title">Flynn Carsen 2: Návrat do dolů krále Šalamouna</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Flynn Carsen: Honba za Kopím osudu-->
+        <div class="filterDiv g01 g03 g06 g14 y2004 show" data-name="Flynn Carsen 01" data-year="2004" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Flynn-Carsen-Honba-za-Kopím-osudu.htm">
+                    <img src="assets/img/Flynn-Carsen-Honba-za-Kopím-osudu.jpg">
+                    <div class="title">Flynn Carsen: Honba za Kopím osudu</div>
+                    <div class="year">2004</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Fantastická zvířata: Brumbálova tajemství-->
+        <div class="filterDiv g03 g14 g06 g52 y2022 show" data-name="Fantastická zvířata 03" data-year="2022" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fantastická-zvířata-Brumbálova-tajemství.htm">
+                    <img src="assets/img/Fantastická-zvířata-Brumbálova-tajemství.jpg">
+                    <div class="title">Fantastická zvířata: Brumbálova tajemství</div>
+                    <div class="year">2022</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Fantastická zvířata: Grindelwaldovy zločiny-->
+        <div class="filterDiv g03 g14 06 g52 y2018 show" data-name="Fantastická zvířata 02" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fantastická-zvířata-Grindelwaldovy-zločiny.htm">
+                    <img src="assets/img/Fantastic-Beasts-The-Crimes-of-Grindelwald.png">
+                    <div class="title">Fantastická zvířata: Grindelwaldovy zločiny</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Fantastická zvířata a kde je najít-->
+        <div class="filterDiv g03 g14 g06 g52 y2016 show" data-name="Fantastická zvířata 01" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Fantastická-zvířata-a-kde-je-najít.htm">
+                    <img src="assets/img/Fantastická-zvířata-a-kde-je-najít.jfif">
+                    <div class="title">Fantastická zvířata a kde je najít</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Expendables: Postradatelní 3-->
+        <div class="filterDiv g01 g03 g17 y2014 show" data-name="Postradatelní 03" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Postradatelní-3.htm">
+                    <img src="assets/img/postradatelni-3.png">
+                    <div class="title">Expendables: Postradatelní 3</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Expendables: Postradatelní 2-->
+        <div class="filterDiv g01 g03 g17 y2012 show" data-name="Postradatelní 02" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Postradatelní-2.htm">
+                    <img src="assets/img/postradatelni-2.jfif">
+                    <div class="title">Expendables: Postradatelní 2</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Expendables: Postradatelní-->
+        <div class="filterDiv g01 g03 g17 y2010 show" data-name="Postradatelní 01" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Postradatelní.htm">
+                    <img src="assets/img/postradatelni.jpg">
+                    <div class="title">Expendables: Postradatelní</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Eternals-->
+        <div class="filterDiv g06 g15 g01 g03 g50 y2021 show" data-name="Eternals" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Eternals.htm">
+                    <img src="assets/img/eternals.jpg">
+                    <div class="title">Eternals</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Dungeons & Dragons: Čest zlodějů-->
+        <div class="filterDiv g03 g06 y2023 show" data-name="Dungeons & Dragons: Čest zlodějů" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Dungeons-&-Dragons-Čest-zlodějů.htm">
+                    <img src="assets/img/Dungeons & Dragons - Čest zlodějů.jpg">
+                    <div class="title">Dungeons & Dragons: Čest zlodějů</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Duna: Část druhá-->
+        <div class="filterDiv g01 g15 g03 g05 y2024 show" data-name="Duna 02" data-year="2024" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Duna-2.htm">
+                    <img src="assets/img/duna-2.jpg">
+                    <div class="title">Duna: Část druhá</div>
+                    <div class="year">2024</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Duna-->
+        <div class="filterDiv g01 g15 g03 g05 y2021 show" data-name="Duna 01" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Duna.htm">
+                    <img src="assets/img/duna.jpg">
+                    <div class="title">Duna</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Drákula: Neznámá legenda-->
+        <div class="filterDiv g01 g06 g05 g18 g08 y2014 show" data-name="Drákula: Neznámá legenda" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Drakula.htm">
+                    <img src="assets/img/Drakula.jfif">
+                    <div class="title">Drákula: Neznámá legenda</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Dolittle-->
+        <div class="filterDiv g10 g14 g03 g06 y2020 show" data-name="Dolittle" data-year="2020" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Dolittle.htm">
+                    <img src="assets/img/Dolittle.png">
+                    <div class="title">Dolittle</div>
+                    <div class="year">2020</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Doctor Strange-->
+        <div class="filterDiv g01 g15 g03 g06 g50 y2016 show" data-name="Doctor Strange" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Doctor-Strange.htm">
+                    <img src="assets/img/Doctor-Strange.jpg">
+                    <div class="title">Doctor Strange</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Divergence-->
+        <div class="filterDiv g15 g03 g17 y2014 show" data-name="Divergence" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Divergence.htm">
+                    <img src="assets/img/Divergence.jpg">
+                    <div class="title">Divergence</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Den nezávislosti: Nový útok-->
+        <div class="filterDiv g01 g15 g03 y2016 show" data-name="Den nezávislosti 02" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Den-nezavislosti-2.htm">
+                    <img src="assets/img/den-nezavislosti-2.jpg">
+                    <div class="title">Den nezávislosti: Nový útok</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Den nezávislosti-->
+        <div class="filterDiv g01 g15 g17 g03 y1996 show" data-name="Den nezávislosti 01" data-year="1996" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Den-nezavislosti.htm">
+                    <img src="assets/img/den-nezavislosti.jpg">
+                    <div class="title">Den nezávislosti</div>
+                    <div class="year">1996</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Deadpool & Wolverine-->
+        <div class="filterDiv g01 g10 g15 g50 y2024 show" data-name="Deadpool 03" data-year="2024" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Deadpool-and-wolverine.htm">
+                    <img src="assets/img/deadpool-2024.jpg">
+                    <div class="title">Deadpool & Wolverine</div>
+                    <div class="year">2024</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Deadpool 2-->
+        <div class="filterDiv g01 g03 g10 g15 g50 y2018 show" data-name="Deadpool 02" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Deadpool-2.htm">
+                    <img src="assets/img/deadpool-2018.jpg">
+                    <div class="title">Deadpool 2</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Deadpool-->
+        <div class="filterDiv g01 g10 g03 g15 g21 g50 y2016 show" data-name="Deadpool 01" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Deadpool.htm">
+                    <img src="assets/img/deadpool-2016.jpg">
+                    <div class="title">Deadpool</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Dcera čarodějky-->
+        <div class="filterDiv g01 g03 g06 g14 y2015 show" data-name="Dcera čarodějky" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Dcera-carodejky.htm">
+                    <img src="assets/img/skammerens-Datter.jpg">
+                    <div class="title">Dcera čarodějky</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Čarodějův učeň-->
+        <div class="filterDiv g01 g03 g05 g06 y2010 show" data-name="Čarodějův učeň" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Carodejuv-ucen.htm">
+                    <img src="assets/img/carodejuv-ucen.jpg">
+                    <div class="title">Čarodějův učeň</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Constantine-->
+        <div class="filterDiv g06 g13 g17 g08 y2005 show" data-name="Constantine" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Constantine.htm">
+                    <img src="assets/img/Constantine.jpg">
+                    <div class="title">Constantine</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Cesta na tajuplný ostrov 2-->
+        <div class="filterDiv g03 g06 g10 g14 g01 g15 y2012 show" data-name="Cesta na tajuplný ostrov 2" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Cesta-na-tajuplny-ostrov-2.htm">
+                    <img src="assets/img/journey-2-The-mysterious-island.jpg">
+                    <div class="title">Cesta na tajuplný ostrov 2</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Cars 3-->
+        <div class="filterDiv g02 g16 g03 g10 g14 y2017 show" data-name="Cars 03" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Cars-3.htm">
+                    <img src="assets/img/Cars-3.jpeg">
+                    <div class="title">Cars 3</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Cars 2-->
+        <div class="filterDiv g02 g16 g03 g14 g10 y2011 show" data-name="Cars 02" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Cars-2.htm">
+                    <img src="assets/img/Cars-2.jpg">
+                    <div class="title">Cars 2</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Cars-->
+        <div class="filterDiv g02 g10 g14 g16 y2006 show" data-name="Cars 01" data-year="2006" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Cars.htm">
+                    <img src="assets/img/Cars.jpg">
+                    <div class="title">Cars</div>
+                    <div class="year">2006</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Captain America: Návrat prvního Avengera-->
+        <div class="filterDiv g01 g03 g15 g50 y2014 show" data-name="Captain America 02" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Captain-America-The-Winter-Soldier.htm">
+                    <img src="assets/img/captain-america-the-winter-soldier.jpg">
+                    <div class="title">Captain America: Návrat prvního Avengera</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Captain America: Občanská válka-->
+        <div class="filterDiv g01 g03 g15 g50 y2016 show" data-name="Captain America 03" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Captain-America-Civil-war.htm">
+                    <img src="assets/img/captain-america-civil-war.jpg">
+                    <div class="title">Captain America: Občanská válka</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Captain America: První Avenger-->
+        <div class="filterDiv g01 g03 g15 g50 y2011 show" data-name="Captain America 01" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Captain-America-The-First-Avenger.htm">
+                    <img src="assets/img/captain-america-prvni-avengers.jpg">
+                    <div class="title">Captain America: První Avenger</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Bumblebee-->
+        <div class="filterDiv g01 g03 g15 y2018 show" data-name="Bumblebee" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Bumblebee.htm">
+                    <img src="assets/img/Bumblebee.jpg">
+                    <div class="title">Bumblebee</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Božská relikvie 2-->
+        <div class="filterDiv g01 g03 g10 y1991 show" data-name="Božská relikvie 2" data-year="1991" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Božská-relikvie-2.htm">
+                    <img src="assets/img/bozska-relikvie-2.jpg">
+                    <div class="title">Božská relikvie 2</div>
+                    <div class="year">1991</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Bohové Egypta-->
+        <div class="filterDiv g01 g06 g03 y2016 show" data-name="Bohové Egypta" data-year="2016" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Bohove-Egypta.htm">
+                    <img src="assets/img/Bohove-egypta.jpg">
+                    <div class="title">Bohové Egypta</div>
+                    <div class="year">2016</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Blesk-->
+        <div class="filterDiv g01 g11 g17 y1995 show" data-name="Blesk" data-year="1995" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Blesk.htm">
+                    <img src="assets/img/blesk.jpg">
+                    <div class="title">Blesk</div>
+                    <div class="year">1995</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Blade Runner 2049-->
+        <div class="filterDiv g15 g013 g17 g05 y2017 show" data-name="Blade Runner 2049" data-year="2017" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Blade-Runner-2049.htm">
+                    <img src="assets/img/blade-runner-2049.jpg">
+                    <div class="title">Blade Runner 2049</div>
+                    <div class="year">2017</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Black Panther-->
+        <div class="filterDiv g01 g03 g15 g50 y2018 show" data-name="Black Panther" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Black-Panther.htm">
+                    <img src="assets/img/Black-panther.jpg">
+                    <div class="title">Black Panther</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Bitevní loď-->
+        <div class="filterDiv g01 g15 g03 g18 y2012 show" data-name="Bitevní loď" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Battleship.htm">
+                    <img src="assets/img/Battleship.jpg">
+                    <div class="title">Bitevní loď</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Batman začíná-->
+        <div class="filterDiv g01 g03 g51 y2005 show" data-name="Batman začíná" data-year="2005" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Batman-zacina.htm">
+                    <img src="assets/img/Batman-zacina.jfif">
+                    <div class="title">Batman začíná</div>
+                    <div class="year">2005</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Avengers: Endgame-->
+        <div class="filterDiv g01 g03 g15 g06 g50 y2019 show" data-name="Avengers 04" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Avengers-Endgame.htm">
+                    <img src="assets/img/Avengers-Endgame.jpg">
+                    <div class="title">Avengers: Endgame</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Avengers: Infinity War-->
+        <div class="filterDiv g01 g03 g15 g50 y2018 show" data-name="Avengers 03" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Avengers-Infinity-War.htm">
+                    <img src="assets/img/Avengers-Infinity-War.jpg">
+                    <div class="title">Avengers: Infinity War</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Avengers: Age of Ultron-->
+        <div class="filterDiv g01 g03 g15 g06 g50 y2015 show" data-name="Avengers 02" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Avengers-Age-of-Ultron.htm">
+                    <img src="assets/img/Avengers-Age-of-Ultron.jpg">
+                    <div class="title">Avengers: Age of Ultron</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Avengers-->
+        <div class="filterDiv g01 g03 g15 g06 g50 y2012 show" data-name="Avengers 01" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Avengers.htm">
+                    <img src="assets/img/The-Avengers.jpg">
+                    <div class="title">Avengers</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Avatar: Fire and Ash-->
+        <div class="filterDiv g01 g03 g15 g06 g05 g53 y2025 show" data-name="Avatar 03" data-year="2025" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Avatar-3.htm">
+                    <img src="assets/img/.jpg">
+                    <div class="title">Avatar: Fire and Ash</div>
+                    <div class="year">2025</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Avatar: The Way of Water-->
+        <div class="filterDiv g01 g03 g15 g06 g53 y2022 show" data-name="Avatar 02" data-year="2022" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Avatar-2.htm">
+                    <img src="assets/img/avatar-2.jpg">
+                    <div class="title">Avatar: The Way of Water</div>
+                    <div class="year">2022</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Avatar-->
+        <div class="filterDiv g01 g03 g15 g06 g53 y2009 show" data-name="Avatar 01" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Avatar.htm">
+                    <img src="assets/img/avatar.jpg">
+                    <div class="title">Avatar</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Aquaman a ztracené království-->
+        <div class="filterDiv g01 g03 g06 g51 y2023 show" data-name="Aquaman 02" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Aquaman-a-ztracené-království.htm">
+                    <img src="assets/img/aquaman-2.png">
+                    <div class="title">Aquaman a ztracené království</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Aquaman-->
+        <div class="filterDiv g01 g03 g06 g51 y2018 show" data-name="Aquaman 01" data-year="2018" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Aquaman.htm">
+                    <img src="assets/img/aquaman.jpg">
+                    <div class="title">Aquaman</div>
+                    <div class="year">2018</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Ant-Man-->
+        <div class="filterDiv g01 g15 g06 g10 g50 y2015 show" data-name="Ant-Man 01" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Ant-Man.htm">
+                    <img src="assets/img/Ant-Man.jpg">
+                    <div class="title">Ant-Man</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Amazing Spider-Man 2-->
+        <div class="filterDiv g01 g03 g06 y2014 show" data-name="Amazing Spider-Man 02" data-year="2014" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Amazing-Spider-Man-2.htm">
+                    <img src="assets/img/amazing-spider-man-2.jpg">
+                    <div class="title">Amazing Spider-Man 2</div>
+                    <div class="year">2014</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Amazing Spider-Man-->
+        <div class="filterDiv g01 g03 g06 y2012 show" data-name="Amazing Spider-Man 01" data-year="2012" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Amazing-Spider-Man.htm">
+                    <img src="assets/img/amazing-spider-man.jpg">
+                    <div class="title">Amazing Spider-Man</div>
+                    <div class="year">2012</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Alvin a Chipmunkové 4-->
+        <div class="filterDiv g02 g10 g14 g09 g06 y2015 show" data-name="Alvin a Chipmunkové 4" data-year="2015" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Alvin-a-Chipmunkove-4.htm">
+                    <img src="assets/img/alvin-a-chipmunkove-4.jpg">
+                    <div class="title">Alvin a Chipmunkové 4</div>
+                    <div class="year">2015</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Alvin a Chipmunkové 3-->
+        <div class="filterDiv g02 g10 g14 g09 y2011 show" data-name="Alvin a Chipmunkové 3" data-year="2011" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Alvin-a-Chipmunkove-3.htm">
+                    <img src="assets/img/alvin-a-chipmunkove-3.jfif">
+                    <div class="title">Alvin a Chipmunkové 3</div>
+                    <div class="year">2011</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Alvin a Chipmunkové 2-->
+        <div class="filterDiv g02 g10 g14 g09 y2009 show" data-name="Alvin a Chipmunkové 2" data-year="2009" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Alvin-a-Chipmunkove-2.htm">
+                    <img src="assets/img/alvin-a-chipmunkove-2.jpg">
+                    <div class="title">Alvin a Chipmunkové 2</div>
+                    <div class="year">2009</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Alvin a Chipmunkové-->
+        <div class="filterDiv g02 g10 g14 g09 y2007 show" data-name="Alvin a Chipmunkové" data-year="2007" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Alvin-a-Chipmunkove.htm">
+                    <img src="assets/img/alvin-a-chipmunkove.jpg">
+                    <div class="title">Alvin a Chipmunkové</div>
+                    <div class="year">2007</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Alita: Bojový Anděl-->
+        <div class="filterDiv g01 g03 g21 g15 g17 y2019 show" data-name="Alita: Bojový Anděl" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Alita-Bojovy-Andel.htm">
+                    <img src="assets/img/Alita-Bojovy-Andel.jpg">
+                    <div class="title">Alita: Bojový Anděl</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--Aladin-->
+        <div class="filterDiv g03 g14 g06 g12 g21 y2019 show" data-name="Aladin" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="Aladin.htm">
+                    <img src="assets/img/Aladin.jpeg">
+                    <div class="title">Aladin</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--After Tajemství-->
+        <div class="filterDiv g05 g21 y2021 show" data-name="After 03" data-year="2021" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="After-Tajemstvi.htm">
+                    <img src="assets/img/After-tajemstvi.jpg">
+                    <div class="title">After Tajemství</div>
+                    <div class="year">2021</div>
+                </a>
+            </div>
+        </div>
+
+        <!--After Přiznání-->
+        <div class="filterDiv g05 g21 y2020 show" data-name="After 02" data-year="2020" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="After-Priznani.htm">
+                    <img src="assets/img/After-priznani.png">
+                    <div class="title">After Přiznání</div>
+                    <div class="year">2020</div>
+                </a>
+            </div>
+        </div>
+
+        <!--After Pouto-->
+        <div class="filterDiv g05 g21 y2022 show" data-name="After 04" data-year="2022" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="After-Pouto.htm">
+                    <img src="assets/img/After-pouto.png">
+                    <div class="title">After Pouto</div>
+                    <div class="year">2022</div>
+                </a>
+            </div>
+        </div>
+
+        <!--After Polibek-->
+        <div class="filterDiv g05 g21 y2019 show" data-name="After 01" data-year="2019" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="After-Polibek.htm">
+                    <img src="assets/img/After-polibek.png">
+                    <div class="title">After Polibek</div>
+                    <div class="year">2019</div>
+                </a>
+            </div>
+        </div>
+
+        <!--After Odloučení-->
+        <div class="filterDiv g05 g21 y2023 show" data-name="After 05" data-year="2023" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="After-Odpoučení.htm">
+                    <img src="assets/img/After-Odlouceni.jpg">
+                    <div class="title">After Odloučení</div>
+                    <div class="year">2023</div>
+                </a>
+            </div>
+        </div>
+
+        <!--A-Team.htm-->
+        <div class="filterDiv g01 g11 g17 g03 g10 y2010 show" data-name="A-Team" data-year="2010" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="A-Team.htm">
+                    <img src="assets/img/A-Team.jpg">
+                    <div class="title">A-Team</div>
+                    <div class="year">2010</div>
+                </a>
+            </div>
+        </div>
+
+        <!--100% Vlk-->
+        <div class="filterDiv g02 g03 g06 g10 g14 y2020 show" data-name="100% Vlk" data-year="2020" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="100%-Vlk.htm">
+                    <img src="assets/img/100%-Vlk.jpg">
+                    <div class="title">100% Vlk</div>
+                    <div class="year">2020</div>
+                </a>
+            </div>
+        </div>
+
+                <!--60 Sekund-->
+        <div class="filterDiv g01 g11 g17 y2000 show" data-name="60 Sekund" data-year="2000" data-added="2026-05-10">
+            <div class="anime-card">
+                <a href="60-sekund.htm">
+                    <img src="assets/img/60sekund.jpg">
+                    <div class="title">60 Sekund</div>
+                    <div class="year">2000</div>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentGenre = "all";
+    var currentYear = "all";
+
+    function setGenre(genre) {
+        currentGenre = genre;
+        updateFilters();
+        updateActiveBtn('genreContainer', genre);
+        updateActiveBtn('universeContainer', genre);
+
+        // AUTOMATICKÉ ŘAZENÍ:
+        // Pokud je to vesmír (g50, g51...), seřaď podle ROKU, jinak podle ABECEDY
+        if (genre.startsWith('g5') && genre !== 'all') {
+            sortShows('year');
+        } else {
+            sortShows('name');
+        }
+    }
+
+    function setYear(year) {
+        currentYear = year;
+        updateFilters();
+        updateActiveBtn('yearContainer', year);
+        
+        // Po výběru roku to vždycky srovnej abecedně
+        sortShows('name');
+    }
+
+    function updateFilters() {
+        var x = document.getElementsByClassName("filterDiv");
+        for (var i = 0; i < x.length; i++) {
+            var g = currentGenre === "all" || x[i].classList.contains(currentGenre);
+            var y = currentYear === "all" || x[i].classList.contains(currentYear);
+            x[i].classList.toggle("show", g && y);
+        }
+        updateCount();
+    }
+
+    function updateCount() {
+        document.querySelector('.number').innerHTML = document.querySelectorAll('.filterDiv.show').length;
+    }
+
+    function updateActiveBtn(id, val) {
+        var btns = document.getElementById(id).getElementsByClassName("btn");
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].classList.remove("active");
+            if (btns[i].getAttribute('onclick').includes("'" + val + "'")) btns[i].classList.add("active");
+        }
+    }
+
+    function sortShows(criteria) {
+        const container = document.getElementById("ajaxContent");
+        const shows = Array.from(container.getElementsByClassName("filterDiv"));
+
+        shows.sort((a, b) => {
+            let valA = a.getAttribute(`data-${criteria}`).toLowerCase();
+            let valB = b.getAttribute(`data-${criteria}`).toLowerCase();
+
+            if (criteria === 'name') {
+                return valA.localeCompare(valB);
+            }
+            
+            if (criteria === 'year') {
+                // ZMĚNA: valA - valB zajistí vzestupné řazení (2001, 2002, 2003...)
+                return valA.localeCompare(valB); 
+            }
+
+            if (criteria === 'added') {
+                return new Date(valB) - new Date(valA); // Tady necháme nejnovější nahoře
+            }
+        });
+
+        shows.forEach(show => container.appendChild(show));
+    }
+
+
+    function searchShows() {
+        var input = document.getElementById("searchInput");
+        var filter = input.value.toLowerCase();
+        var nodes = document.getElementsByClassName('filterDiv');
+
+        for (i = 0; i < nodes.length; i++) {
+            // Vytáhneme název z data-name atributu
+            var title = nodes[i].getAttribute('data-name').toLowerCase();
+            
+            if (title.includes(filter)) {
+                nodes[i].classList.add("show");
+            } else {
+                nodes[i].classList.remove("show");
+            }
+        }
+        // Aktualizujeme i to tvoje počítadlo nahoře
+        updateCount();
+    }   
+
+    updateCount(); // Prvotní počet
+
+    const sliders = document.querySelectorAll('.filter-group');
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+
+        sliders.forEach(slider => {
+            slider.addEventListener('mousedown', (e) => {
+                isDown = true;
+                slider.classList.add('active');
+                startX = e.pageX - slider.offsetLeft;
+                scrollLeft = slider.scrollLeft;
+            });
+            slider.addEventListener('mouseleave', () => {
+                isDown = false;
+            });
+            slider.addEventListener('mouseup', () => {
+                isDown = false;
+            });
+            slider.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                e.preventDefault();
+                const x = e.pageX - slider.offsetLeft;
+                const walk = (x - startX) * 2; // Rychlost posunu (2x)
+                slider.scrollLeft = scrollLeft - walk;
+        });
+    });
+
+    window.onload = function() {
+        updateFilters();
+        setTimeout(function() {
+            sortShows('name');
+        }, 100); // 100 milisekund zpoždění zajistí, že už je vše načteno
+    }; 
+</script>
+
+</body>
+</html>
