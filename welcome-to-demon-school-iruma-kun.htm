@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8">
+    <title>MyLiberty | Welcome to Demon School! Iruma-kun</title>
+    <link rel="icon" href="assets/img/book-open.ico" type="image/x-icon">
+    <style>
+        body { background-color: #121212; color: #fff; font-family: 'Nunito Sans', sans-serif; margin: 0; }
+        
+        /* HORNÍ LIŠTA (stejná jako na hlavní stránce) */
+        .header {
+            background-color: #1a1a1a; height: 60px; display: flex;
+            align-items: center; padding: 0 40px; position: sticky; top: 0;
+            z-index: 1000; border-bottom: 1px solid #252525; justify-content: space-between;
+        }
+        .header .logo { font-weight: bold; font-size: 20px; color: #eee; text-decoration: none; }
+        .header nav a { color: #888; text-decoration: none; margin-left: 20px; font-size: 16px; text-transform: uppercase; }
+
+        /* DETAIL SERIÁLU */
+        .main-container { padding: 40px; max-width: 1100px; margin: auto; display: flex; gap: 40px; }
+        
+        .poster-side { flex: 0 0 300px; }
+        .poster-side img { width: 100%; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+
+        .info-side { flex: 1; }
+        .info-side h1 { 
+            margin: 0; 
+            line-height: 1.1; 
+            font-size: 32px; 
+            flex: 1; 
+            min-width: 0; /* KRITICKÉ: dovolí textu, aby se zalomil místo růstu do nekonečna */ 
+            word-wrap: break-word; /* Pro jistotu u extrémně dlouhých slov */
+        }
+        .info-side .alt-title { color: #666; font-size: 16px; margin-bottom: 5px; margin: 0 0 0 0; }
+        
+        .meta { display: flex; align-items: center; gap: 8px; margin-top: 10px ; margin-bottom: 25px; flex-wrap: wrap; }
+        .badge { background: #222; padding: 5px 12px; border-radius: 5px; font-size: 12px; color: #aaa; font-weight: bold; }
+        .badge.yellow { color: #ffcc00; }
+        .badge.purple { color: #bb86fc; }
+        .badge.blue { color:#448aff; }
+
+        /* Styl pro kontejner vlajky */
+        .flag { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 20px 0 20px;}
+        /* Styl pro všechny obrázky uvnitř jakékoli vlajky */
+        .flag img {
+            height: 18px; 
+            width: auto;
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            transition: transform 0.2s;
+            display: block; /* Tohle zajistí, že pod ním nebude divná mezera */
+        }
+        .flag img:hover { transform: scale(1.2); }
+
+        .description { line-height: 1.6; color: #bbb; margin-bottom: 30px; font-size: 15px; }
+
+        .btn-watch { 
+            background: #fff; color: #000; border: none; padding: 12px 30px; 
+            font-weight: bold; border-radius: 5px; cursor: pointer; text-transform: uppercase;
+        }
+
+        /* SEZNAM EPIZOD */
+        .episodes-section { max-width: 1100px; margin: 40px auto; padding: 0 40px; }
+        .episode-list { background: #1a1a1a; border-radius: 10px; overflow: hidden; }
+        .episode-item { 
+            padding: 15px 20px; border-bottom: 1px solid #252525; 
+            display: flex; justify-content: space-between; align-items: center;
+            transition: 0.2s; cursor: pointer;
+        }
+        .episode-item:hover { background: #222; }
+        .episode-item .title { color: #ddd; font-size: 14px; }
+        .episode-item .sub { color: #bb86fc; font-size: 12px; font-weight: bold; }
+
+        /* Obal pro celý vršek informací */
+        .info-header {
+            display: flex;
+            justify-content: space-between; 
+            align-items: flex-start;
+            gap: 30px;
+            margin-bottom: 20px;
+            width: 100%; /* Zajistí, že hlavička neuteče z obrazovky */
+        }
+
+        /* KONTEJNER PRO RATINGY */
+        .rating-container {
+            display: flex;
+            gap: 20px;
+            flex-shrink: 0; /* Zabrání kolečkům, aby se smrskla na placky */
+            margin-top: 5px;
+        }
+        .rating-item {
+            text-align: center;
+            color: #666;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: 0.3s;
+        }
+        .rating-item:hover { color: #fff; }
+
+        /* KOLEČKO S HODNOCENÍM (IMDB) */
+        .circle-rating, .link-circle {
+            width: 60px;  /* Sjednoceno na 60px */
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            position: relative;
+        }
+        .link-circle { border-radius: 50%; background-color: #222; transition: 0.3s; }
+        .circle-rating svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 60px;
+            height: 60px;
+            transform: rotate(-90deg); /* Otočíme, aby se plnilo shora */
+        }
+        .circle-rating circle { fill: none; stroke-width: 4; stroke-linecap: round; }
+        .circle-rating .bg { stroke: #252525; /* Šedý podklad */ }
+        .circle-rating .progress {
+            stroke: #ffcc00; /* Žlutá část podle hodnocení */
+            stroke-dasharray: 157; /* Obvod kruhu (2 * pi * 25) */
+            /* dashoffset: 157 - (157 * hodnoceni / 10) */
+            transition: stroke-dashoffset 1s ease-in-out;
+        }
+
+        .rating-value { font-size: 14px; font-weight: bold; color: #fff; }
+
+        /* TLAČÍTKO SE ŠIPKOU (ČSFD) */
+        .link-circle svg { width: 24px; height: 24px; fill: #666; }
+
+        .rating-item:hover .link-circle { background-color: #333; }
+        .rating-item:hover .link-circle svg { fill: #fff; }
+
+        /* Styl pro nadpis série (tlačítko) */
+        .series-toggle {
+            background-color: #1a1a1a;
+            color: #666;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 16px;
+            font-weight: bold;
+            transition: 0.4s;
+            border-bottom: 1px solid #252525;
+            display: flex;
+            justify-content: space-between;
+        }
+        .series-toggle:hover, .active-series { background-color: #222; color: #fff; }
+        /* Šipka u série */
+        .series-toggle:after { content: '\002B'; /* Znaménko + */ color: #777; font-weight: bold; }
+        .active-series:after { content: "\2212"; /* Znaménko - */ }
+        /* Skrytý kontejner pro díly */
+        .episodes-panel { max-height: 0; overflow: hidden; transition: max-height 0.2s ease-out; background-color: #161616; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <a href="index.htm" class="logo"><img src="assets/img/logo-cz.png" alt="MyLiberty"></a>
+    <nav style="font-family: Hemi Head;">
+        <a href="index.htm">Domů</a>
+        <a href="filmy.htm">Filmy</a>
+        <a href="serialy.htm">Seriály</a>
+    </nav>
+</div>
+
+<div class="main-container">
+    <div class="poster-side">
+        <img src="assets/img/d7643b0a-4702-11ed-9455-77f75e4b2dc1.jpg" alt="Poster">
+    </div>
+
+    <div class="info-side">
+        <div class="info-header">
+            <!-- Vlevo bude skupina s názvy -->
+            <div style="flex: 1; min-width: 0;"> 
+                <h1>Welcome to Demon School! Iruma-kun</h1>
+                <div class="alt-title">Mairimashita! Iruma-kun</div>
+            </div>
+                    
+            <div class="rating-container">
+                <!-- Tady jsou tvoje IMDB a ČSFD kolečka -->
+                <div class="rating-item">
+                    <!-- IMDB Kolečko -->
+                    <a href="https://www.imdb.com/title/tt11034066" target="_blank" class="rating-item">
+                        <div class="rating-item">
+                            <div class="circle-rating">
+                                <svg>
+                                    <circle class="bg" cx="30" cy="30" r="25"></circle>
+                                                            <!-- Offset: 157 - (157 * 7.6 / 10) = cca 38 -->
+                                    <circle class="progress" cx="30" cy="30" r="25" style="stroke-dashoffset: 38;"></circle>
+                                </svg>
+                                <div class="rating-value">7.6</div>
+                            </div>
+                            IMDb
+                        </div>
+                    </a>
+                </div>
+                <div class="rating-item">
+                    <!-- ČSFD Odkaz -->
+                    <a href="https://www.csfd.cz/film/1000873-mairimasita-iruma-kun" target="_blank" class="rating-item">
+                        <div class="link-circle">
+                            <svg xmlns="http://w3.org" viewBox="0 0 24 24">
+                                <path d="M5 3l3.057-3 11.943 12-11.943 12-3.057-3 9-9z"/>
+                            </svg>
+                        </div>
+                        ČSFD
+                    </a>
+                </div>
+            </div>
+        </div>
+            
+        <div class="meta">
+            <span class="badge yellow">2019 -</span>
+            <span class="badge">ANIME</span>
+            <span class="badge">FANTASY</span>
+            <span class="badge">KOMEDIE</span>
+            <span class="flag">
+                <img src="assets/img/Flags/jp.svg" alt="JP">
+            </span>
+            <span class="badge purple">TITULKY</span>
+        </div>
+
+        <div class="description">
+            Suzuki Irumi se ocitl v péči démona, jemuž ho předali jeho rodiče za peníze. Démon Suzukiho adoptoval jako svého vnuka. Zapsal ho do démonské školy jež je ředitelem.
+        </div>
+
+        <!-- Přidali jsme onclick, který tě "hodí" na první epizodu -->
+        <button class="btn-watch" onclick="startWatching()">Začít sledovat</button>
+    </div>
+</div>
+
+<div class="episodes-section">
+    <!-- 1. SÉRIE -->
+    <button class="series-toggle">1. SÉRIE (23 EP)</button>
+    <div class="episodes-panel">
+        <div class="episode-list">
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e01.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e01.vtt')">
+                <span class="title">1. Iruma-kun from Demon School</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e02.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e02.vtt')">
+                <span class="title">2. Familiars Summoned!</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e03.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e03.vtt')">
+                <span class="title">3. Iruma and Clara / Demon Friends</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e04.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e04.vtt')">
+                <span class="title">4. The Misfit Class</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e05.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e05.vtt')">
+                <span class="title">5. The One Who Wants to Be Demon King</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e06.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e06.vtt')">
+                <span class="title">6. Ameri's Theory</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e07.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e07.vtt')">
+                <span class="title">7. First Love Memories</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e08.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e08.vtt')">
+                <span class="title">8. Head Over Heels for Clara</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e09.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e09.vtt')">
+                <span class="title">9. Iruma's Decision and Hard Work</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e10.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e10.vtt')">
+                <span class="title">10. Fierce Battle, Execution Cannonball!!</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e11.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e11.vtt')">
+                <span class="title">11. Together with Familiars!</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e12.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e12.vtt')">
+                <span class="title">12. The Rookie Hunt!!</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e13.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e13.vtt')">
+                <span class="title">13. The Magical Apparatus Battler</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e14.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e14.vtt')">
+                <span class="title">14. The Battlers' Presentation</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e15.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e15.vtt')">
+                <span class="title">15. Kiriwo's Secret Room</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e16.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e16.vtt')">
+                <span class="title">16. Party Eve</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e17.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e17.vtt')">
+                <span class="title">17. Run, Iruma, to Kiriwo!</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e18.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e18.vtt')">
+                <span class="title">18. What I Want More Than Anything</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e19.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e19.vtt')">
+                <span class="title">19. I Want to Pick Everything Up</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e20.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e20.vtt')">
+                <span class="title">20. Glorious Award / Treatment of Humans</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e21.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e21.vtt')">
+                <span class="title">21. Dem-dol Kuromu-chan!</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e22.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e22.vtt')">
+                <span class="title">22. Sparkling Shock</span>
+                <span class="sub">TIT</span>
+            </div>
+            <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e23.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/1. serie/s01e23.vtt')">
+                <span class="title">23. You Fit Right In Now, Iruma-kun</span>
+                <span class="sub">TIT</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. SÉRIE -->
+    <button class="series-toggle">2. SÉRIE (21 EP)</button>
+    <div class="episodes-panel">
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e01.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e01.vtt')">
+            <span class="title">1. The Secret Behind the Ring</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e02.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e02.vtt')">
+            <span class="title">2. Ameri's Decision</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e03.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e03.vtt')">
+            <span class="title">3. A Lovely Demoness</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e04.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e04.vtt')">
+            <span class="title">4. The Student Council President's Gaze</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e05.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e05.vtt')">
+            <span class="title">5. Invite Your Friends!</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e06.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e06.vtt')">
+            <span class="title">6. Royal One</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e07.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e09.vtt')">
+            <span class="title">7. The Teachers at Babyls</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e08.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e08.vtt')">
+            <span class="title">8. The Miracle of Some Fools</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e09.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e09.vtt')">
+            <span class="title">9. Studying in the Netherworld</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e10.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e10.vtt')">
+            <span class="title">10. Balam's Lesson</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e11.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e11.vtt')">
+            <span class="title">11. End-of-Terminus Exams / Girls' Talk</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e12.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e12.vtt')">
+            <span class="title">12. Kalego-sensei's Home Visit</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e13.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e13.vtt')">
+            <span class="title">13. Walter Park</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e14.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e14.vtt')">
+            <span class="title">14. Everyone's Playmates</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e15.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e15.vtt')">
+            <span class="title">15. Magical Beasts Attack</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e16.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e16.vtt')">
+            <span class="title">16. The Name of This Feeling</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e17.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e17.vtt')">
+            <span class="title">17. The Ultimate Halberd</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e18.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e18.vtt')">
+            <span class="title">18. My Desire</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e19.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e19.vtt')">
+            <span class="title">19. Clara's House</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e20.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e20.vtt')">
+            <span class="title">20. Dream Date</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e21.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/2. serie/s02e21.vtt')">
+            <span class="title">21. The One Who Rules Over the Netherworld</span>
+            <span class="sub">TIT</span>
+        </div>
+    </div>
+
+    <!-- 3. SÉRIE -->
+    <button class="series-toggle">3. SÉRIE (21 EP)</button>
+    <div class="episodes-panel">
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e01.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e01.vtt')">
+            <span class="title">1. The Misfit Class's New Term</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e02.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e02.vtt')">
+            <span class="title">2. Master Bachiko</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e03.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e03.vtt')">
+            <span class="title">3. Iruma's True Feelings</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e04.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e04.vtt')">
+            <span class="title">4. The Signal That the Harvest Festival Has Begun</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e05.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e05.vtt')">
+            <span class="title">5. Cunning Demons</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e06.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e06.vtt')">
+            <span class="title">6. Devilishly Pure</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e07.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e09.vtt')">
+            <span class="title">7. Clara's Toy Box / A Night Filled with Screams</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e08.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e08.vtt')">
+            <span class="title">8. Can We Make 100 Friends?</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e09.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e09.vtt')">
+            <span class="title">9. The Dorodoro Brothers' Provocation!</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e10.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e10.vtt')">
+            <span class="title">10. The Iruma I Know</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e11.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e11.vtt')">
+            <span class="title">11. Toto the Genie</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e12.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e12.vtt')">
+            <span class="title">12. Wish Upon Your Bow</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e13.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e13.vtt')">
+            <span class="title">13. My Very Own Magic</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e14.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e14.vtt')">
+            <span class="title">14. Lead's Distress</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e15.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e15.vtt')">
+            <span class="title">15. The Truth Worth of the Archer</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e16.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e16.vtt')">
+            <span class="title">16. The End of the Harvest Festival</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e17.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e17.vtt')">
+            <span class="title">17. Legend Leaf</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e18.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e18.vtt')">
+            <span class="title">18. Welcome Back</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e19.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e19.vtt')">
+            <span class="title">19. The Instructors' Banquet</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e20.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e20.vtt')">
+            <span class="title">20. Bad Company / Heartfelt Cooking Class</span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e21.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/3. serie/s03e21.vtt')">
+            <span class="title">21. Words for My Friends</span>
+            <span class="sub">TIT</span>
+        </div>
+    </div>
+
+    <!-- 4. SÉRIE -->
+    <button class="series-toggle">4. SÉRIE (právě vychází EP)</button>
+    <div class="episodes-panel">
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e01.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e01.vtt')">
+            <span class="title">1. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e02.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e02.vtt')">
+            <span class="title">2. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e03.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e03.vtt')">
+            <span class="title">3. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e04.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e04.vtt')">
+            <span class="title">4. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e05.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e05.vtt')">
+            <span class="title">5. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e06.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e06.vtt')">
+            <span class="title">6. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e07.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e09.vtt')">
+            <span class="title">7. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e08.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e08.vtt')">
+            <span class="title">8. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e09.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e09.vtt')">
+            <span class="title">9. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e10.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e10.vtt')">
+            <span class="title">10. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e11.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e11.vtt')">
+            <span class="title">11. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e12.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e12.vtt')">
+            <span class="title">12. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e13.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e13.vtt')">
+            <span class="title">13. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e14.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e14.vtt')">
+            <span class="title">14. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e15.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e15.vtt')">
+            <span class="title">15. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e16.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e16.vtt')">
+            <span class="title">16. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e17.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e17.vtt')">
+            <span class="title">17. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e18.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e18.vtt')">
+            <span class="title">18. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e19.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e19.vtt')">
+            <span class="title">19. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e20.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e20.vtt')">
+            <span class="title">20. </span>
+            <span class="sub">TIT</span>
+        </div>
+        <div class="episode-item" onclick="playEpisode('file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e21.mp4', 'file:///E:/Stažené soubory/Filmy/Serialy/Anime/Welcome to Demon School! Iruma-kun/4. serie/s04e21.vtt')">
+            <span class="title">21. </span>
+            <span class="sub">TIT</span>
+        </div>
+    </div>
+
+    <div id="player-wrapper" class="player-container" style="padding: 0 0; margin-bottom: 50px; display: none;">
+        <h3 class="hemi-font">PŘEHRÁVAČ</h3>
+        <video id="mainPlayer" width="100%" controls>
+            <source id="videoSource" src="" type="video/mp4">
+            <!-- Tady je příprava pro titulky -->
+            <track id="videoTrack" kind="subtitles" srclang="cs" label="Čeština" src="" default>
+        </video>
+    </div>
+</div>
+
+<script>
+    var acc = document.getElementsByClassName("series-toggle");
+        for (var i = 0; i < acc.length; i++) {
+        acc[i].addEventListener("click", function() {
+            this.classList.toggle("active-series");
+            var panel = this.nextElementSibling;
+            if (panel.style.maxHeight) {
+            panel.style.maxHeight = null;
+            } else {
+            panel.style.maxHeight = panel.scrollHeight + "px";
+            }
+        });
+    }
+
+    function startWatching() {
+        // Najde první element se třídou 'episode-item'
+        var firstEp = document.querySelector('.episode-item');
+        if (firstEp) {
+            // Pokud máš sérii zavřenou (harmonika), tak ji nejdřív otevře
+            var panel = firstEp.closest('.episodes-panel');
+            var toggle = panel.previousElementSibling;
+                
+            if (!panel.style.maxHeight) {
+                toggle.click(); // Simuluje kliknutí pro otevření
+            }
+                
+            // Plynule odroluje k prvnímu dílu
+            firstEp.scrollIntoView({ behavior: 'smooth' });
+                
+            // Tady pak můžeš přidat kód pro otevření videa/přehrávače
+            console.log("Začínáme sledovat: " + firstEp.querySelector('.title').innerText);
+        }
+    }
+
+    function playEpisode(videoSrc, subtitleSrc) {
+        const wrapper = document.getElementById('player-wrapper');
+        const player = document.getElementById('mainPlayer');
+        const source = document.getElementById('videoSource');
+        const track = document.getElementById('videoTrack');
+            
+        // 1. Zobrazíme celý kontejner přehrávače
+        wrapper.style.display = 'block';
+            
+        // 2. Nastavíme video a titulky
+        source.src = videoSrc;
+        if (subtitleSrc) {
+            track.src = subtitleSrc;
+        } else {
+            track.src = ""; // Pokud titulky nejsou, vymažeme cestu
+        }
+            
+        // 3. Načteme změny
+        player.load(); 
+        player.play();
+            
+        // 4. Odrolujeme k přehrávači
+        wrapper.scrollIntoView({ behavior: 'smooth' });
+    }
+
+
+</script>
+
+</body>
+</html>
