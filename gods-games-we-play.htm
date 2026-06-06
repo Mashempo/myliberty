@@ -68,8 +68,13 @@
             transition: 0.2s; cursor: pointer;
         }
         .episode-item:hover { background: #222; }
-        .episode-item .title { color: #ddd; font-size: 14px; }
-        .episode-item .sub { color: #bb86fc; font-size: 12px; font-weight: bold; }
+        .episode-item .title { 
+            color: #ddd; font-size: 14px; display: inline-block;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            flex-grow: 1; margin-right: 15px;
+        }
+        .episode-item .sub { font-size: 12px; font-weight: bold; flex-shrink: 0; color: #bb86fc; }
+        .episode-item .sub.dab { color: #448aff; margin-left: 10px; }
 
         /* Obal pro celý vršek informací */
         .info-header {
